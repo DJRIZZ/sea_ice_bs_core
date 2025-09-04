@@ -1,0 +1,17 @@
+name: "sea_ice_bs_core"
+output_dir: ../docs
+navbar:
+  title: "sea_ice_bs_core"
+  left:
+  - text: Home
+    href: index.html
+  - text: About
+    href: about.html
+  - text: License
+    href: license.html
+output:
+  workflowr::wflow_html:
+    toc: yes
+    toc_float: yes
+    theme: cosmo
+    highlight: textmate
