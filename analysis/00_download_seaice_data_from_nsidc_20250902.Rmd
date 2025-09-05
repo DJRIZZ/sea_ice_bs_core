@@ -1,0 +1,109 @@
+---
+title: "Sea Ice Data Download"
+author: "D. Rizzolo"
+date: "`r Sys.Date()`"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# got packages?
+#install.packages(c("httr", "glue", "fs"))
+#library(httr) # did not work with NSIDC cookie requirements during the download, curl did work
+library(fs) # directory operations which were causing problems when using the base R version, not sure why
+library(glue) # file name and URL creation incorporating referenced parts of dates
+```
+
+## Sea Ice Data: Download
+
+Sea ice concentration (sic) data are  from the Scanning Multichannel Microwave Radiometer (SMMR) on the Nimbus-7 satellite and the Special Sensor Microwave/Imager (SSM/I) sensors on the Defense Meteorological Satellite Program's (DMSP) -F8, -F11, and -F13 satellites. 
+
+The data were generated using the Advanced Microwave Scanning Radiometer - Earth Observing System (AMSR-E) Bootstrap Algorithm with daily varying tie-points. 
+
+Data are gridded on the SSM/I polar stereographic grid (25 x 25 km grid cells; northern hemisphere spatial reference system EPSG:3411). Data coverage began on 01 November 1978. The current version of the bootstrap algorithm is version 4.0, which was released in May 2024. 
+
+Data are available for download at: https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0079.004/ (requires a free account and login credentials).
+Data overview and links to documentation, including a user's guide, are at: https://nsidc.org/data/nsidc-0079/versions/4.
+
+Version 4.0 uses the netCDF file format (.nc), which is a change from the previous versions that used the binary format (.bin). The netCDF format contains all metadata and can be read into Program R and examined with functions from the package "ncdf4", which is not used here. See R script file "examine_nsidc_sic_netcdf_content.R" for how to load a .nc file into R and view the metadata and contents.
+ 
+Data are organized at the NSIDC by day with each daily directory containing a file with data averaged over the month and the daily values for that day, along with metadata in xml format. The file naming convention is NSIDC0079_SEAICE_PS_N25km_[date as YYYYmmdd]_v4.0.nc. 
+
+This Program R code downloads data from the NSIDC website between two specified dates (start_date, end_date) and is configured to download only for the months relevant to spectacled eiders (November, December, January, February, March, and April), as specified in the vector winter_months. 
+
+This code uses a project-based directory structure with file path "data/sourced_data/nsidc_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231/" as the directory used for downloading.
+
+```{r download_params, warning = FALSE}
+# NSIDC login parameters are a _netrc file 
+start_date <- as.POSIXct("1992-11-01", format = "%Y-%m-%d") # start of winter 1992-1993, earliest banding data. Winter is defined as 01 Nov year t to 01 May year t+1
+end_date <- as.POSIXct("1992-11-05", format = "%Y-%m-%d") # most recently available data
+save_dir <- "data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231"  
+dir.exists(save_dir)
+winter_months <- c(11, 12, 1, 2, 3, 4) # months of interest
+dates_to_download <- seq(from = start_date, to = end_date, by = "1 day") # dates to download
+
+# Expected number of files
+files_expected <- length(dates_to_download)
+```
+
+## Data download
+
+This code downloads data beginning on `r start_date` through 'r end_date' and includes only the numeric months 'r winter_months'. Given those parameters, a total of 'r files_expected' will be downloaded to `r`save_dir`.
+
+
+```{r download, warning = FALSE}
+# for loop to access daily URLs and download daily data using curl.
+for (date in dates_to_download) {# Loop through target dates (winter months) during range of dates specified
+
+  yyyy <- strftime(date, "%Y") # assign year from date
+  mm <- strftime(date, "%m") # assign month from date
+  dd <- strftime(date, "%d") # assign day from date
+  yyyymmdd <- strftime(date, "%Y%m%d") # format date as it occurs in the file name
+  
+  filename <- glue("NSIDC0079_SEAICE_PS_N25km_{yyyymmdd}_v4.0.nc") # assign file name for each day of data
+  url <- glue("https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0079.004/{yyyy}.{mm}.{dd}/{filename}") # create URL for each day of data
+  destfile <- file.path(save_dir, filename) # assign output directory
+  #print(url)
+
+  if (!file_exists(destfile)) {
+    netrc_path <- "C:/Users/drizzolo/_netrc"  # use forward R's slashes NOT single backslashes
+        curl_cmd <- glue(
+      "curl --ssl-no-revoke --netrc-file \"{netrc_path}\" -L -c cookies.txt -b cookies.txt -o \"{destfile}\" \"{url}\""
+    )
+    
+    result <- system(curl_cmd) # run curl from the
+    
+    if (file_exists(destfile) && file_info(destfile)$size > 0) { # if the file doesn't already exist in the directory
+      cat(glue("✅ Downloaded: {filename}\n"))
+    } else {
+      cat(glue("❌ Failed: {filename}\n"))
+    }
+    
+    Sys.sleep(2)  # pause 
+  } else {
+    cat(glue("⏩ Already exists: {filename}\n"))
+  }
+}
+
+```
+
+
+The code uses a for loop to proceed through each day in the range of dates of interest. For each day, the target in the sequence vector all_dates is used to create the daily file name and corresponding daily url. It runs cURL from Windows to transfer data from the URL and displays messages in the R console indicating a successful download, a failed download, or if the file already exists in the directory. 
+
+```{r check, warning = FALSE}
+# check download
+# actual number of files
+
+files_actual <- length(list.files(save_dir))
+
+check_it <- if(files_expected != files_actual) {
+  "File counts don't match."
+} else {
+  "All files are present."
+}
+
+```
+
+A total of `r files_expected` should have been downloaded. A total of `r files_actual` was actually downloaded. `r check_it`.
