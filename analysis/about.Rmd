@@ -14,5 +14,3 @@ Program R scripts under the “code” directory download and process NSIDC sea 
 Data URL: https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0079.004/
 
 Note: *.nc and *.tif files are NOT included in this repository, to save space. Files can be downloaded from the NSIDC using the downloading code in code/sic_nsidc_download_summarize/00_download_seaice_data_from_nsidc_[version date].R
-
-abcdefg12345678
