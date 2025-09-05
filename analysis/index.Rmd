@@ -1,11 +1,12 @@
 ---
 title: "Home"
 site: workflowr::wflow_site
-output:
-  workflowr::wflow_html:
-    toc: false
+date: "`r Sys.Date()`"
+output: workflowr::wflow_html
 editor_options:
   chunk_output_type: console
 ---
 
-Welcome to my research website.
+* [NSIDC data download](00_download_seaice_data_from_nsidc_20250902.Rmd)
+
+
