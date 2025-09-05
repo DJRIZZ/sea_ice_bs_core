@@ -1,5 +1,5 @@
 ---
-title: "About"
+title: "NSIDC Sea Ice Data Relevant to Spectacled Eiders"
 author: "D. Rizzolo"
 date: "`r Sys.Date()`"
 output: workflowr::wflow_html
