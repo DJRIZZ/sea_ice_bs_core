@@ -31,7 +31,7 @@ output_dir <- "data/sourced_data/nsidc_sic_v4/sic_geotif"
 #nc_files <- list.files(path = input_dir, pattern = "\\.nc$", full.names = TRUE)
 input_dir <- path_abs("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231")
 nc_files <- list.files(input_dir, pattern = "\\.nc$", full.names = TRUE)
-w#length(nc_files)
+#length(nc_files)
 #total_files <- length(nc_files) # to use in progress bar
 
 ```
