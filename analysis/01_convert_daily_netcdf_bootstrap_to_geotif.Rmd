@@ -1,0 +1,58 @@
+---
+title: "Convert netDDF to geotifs"
+author: "D. Rizzolo"
+date: "`r Sys.Date()`"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# script to convert National Snow and Ice Data Center sea ice NetCDF files (*.nc) to geotifs (previously NSDIC provided data as binary files)
+library(ncdf4) # works with Network Common Data Form (NetCDF, file extension *.nc) files
+library(terra) # current functionality of deprecated geos package
+library(progress) # progress bar package for monitoring for loop through files
+library(fs) # file paths in RMD run through workflowr are a challenge...
+```
+
+## File Conversion
+This R code uses packages ncdf4, terra, and progress to load each daily National Snow and Ice Data Center sea ice concentration data file in its native netcdf format and converts it to a geotif file. The package progress is used to create a progress bar to monitor progress through all the files to be converted. 
+
+```{r definePaths, warnings = FALSE}
+# Define input and output directories (run as RStudio project)
+input_dir <- "data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231"
+#dir.exists("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231")
+output_dir <- "data/sourced_data/nsidc_sic_v4/sic_geotif"
+#dir.exists("data/sourced_data/nsidc_sic_v4/sic_geotif")
+
+# list NetCDF daily files
+#nc_files <- list.files(path = normalizePath(input_dir), pattern = "\\.nc$", full.names = TRUE)
+#nc_files <- list.files(path = input_dir, pattern = "\\.nc$", full.names = TRUE)
+input_dir <- path_abs("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231")
+nc_files <- list.files(input_dir, pattern = "\\.nc$", full.names = TRUE)
+w#length(nc_files)
+#total_files <- length(nc_files) # to use in progress bar
+
+```
+
+## Setup
+The input directory is specified as `r input_dir` and the output directory as `r output_dir`. The code also setup a progress bar to monitor the batch file conversions using the package progress and initializes an error_log for tracking file conversion errors.
+
+```{r loop, warnings = FALSE}
+for (file in list.files(input_dir, full.names = TRUE)) { # loop through each daily NetCDF file
+  
+  base_name <- tools::file_path_sans_ext(basename(file)) # extract base name without extension
+  out_file <- file.path(output_dir, paste0(base_name, ".tif")) # build output file name reusing base name with .tif extension
+  r <- rast(file)  # load as raster, NB "varname" option not needed
+  if (is.na(crs(r))) crs(r) <- "EPSG:3411"  # assign CRS (if not already defined in file)
+  r[r > 1000] <- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
+  writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
+}
+
+```
+
+## For Loop
+
+All netCDF files are saved in one directory and a file list is generated for this directory. This list is used in a for loop to load each netCDF file, converts it to a raster with terra::rast, assigns a coordinate reference system (EPSG: 3411), and assigns NA to flagged values (as per metadata values of 1100 and 1200 are flagged values). 
+

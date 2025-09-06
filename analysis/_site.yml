@@ -5,6 +5,8 @@ navbar:
   left:
   - text: Home
     href: index.html
+  - text: NSIDC Data Download
+    href: 00_download_seaice_data_from_nsidc_20250902.Rmd
   - text: About
     href: about.html
   - text: License
@@ -12,6 +14,8 @@ navbar:
 output:
   workflowr::wflow_html:
     toc: yes
-    toc_float: yes
-    theme: cosmo
+    toc_float:
+      collapsed: no
+    theme: flatly
+    code_folding: hide
     highlight: textmate

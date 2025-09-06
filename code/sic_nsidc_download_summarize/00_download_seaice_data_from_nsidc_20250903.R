@@ -10,17 +10,21 @@
 # got packages?
 #install.packages(c("httr", "glue", "fs"))
 #library(httr) # did not work with NSIDC cookie requirements during the download, curl did work
-library(fs) # directory operations
-library(glue) # file name and URL creation
+library(fs) # directory operations which were causing problems when using the base R version, not sure why
+library(glue) # file name and URL creation incorporating referenced parts of dates
 
 # NSIDC login parameters are a _netrc file 
 start_date <- as.POSIXct("1992-11-01", format = "%Y-%m-%d") # start of winter 1992-1993, earliest banding data. Winter is defined as 01 Nov year t to 01 May year t+1
-end_date <- as.POSIXct("2022-04-30", format = "%Y-%m-%d") # most recently available data  
-save_dir <- "data/sourced_data/nsidc_v4/sic_raw_netcdf/raw_nsidc/sic_netcdf_19921130_20241231"  
+end_date <- as.POSIXct("1992-11-05", format = "%Y-%m-%d") # most recently available data  2022-04-30
+save_dir <- "data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231"  
 dir.exists(save_dir)
 winter_months <- c(11, 12, 1, 2, 3, 4) # months of interest
-all_dates <- seq(from = start_date, to = end_date, by = "1 day") # dates to download
+dates_to_download <- seq(from = start_date, to = end_date, by = "1 day") # dates to download
 
+# Expected number of files
+files_expected <- length(dates_to_download) # all_dates
+
+# for loop to access daily URLs and download daily data using curl.
 for (date in dates_to_download) {# Loop through target dates (winter months) during range of dates specified
 
   yyyy <- strftime(date, "%Y") # assign year from date
@@ -39,7 +43,7 @@ for (date in dates_to_download) {# Loop through target dates (winter months) dur
       "curl --ssl-no-revoke --netrc-file \"{netrc_path}\" -L -c cookies.txt -b cookies.txt -o \"{destfile}\" \"{url}\""
     )
     
-    result <- system(curl_cmd)
+    result <- system(curl_cmd) # run curl from the
     
     if (file_exists(destfile) && file_info(destfile)$size > 0) { # if the file doesn't already exist in the directory
       cat(glue("✅ Downloaded: {filename}\n"))
@@ -54,8 +58,14 @@ for (date in dates_to_download) {# Loop through target dates (winter months) dur
 }
 
 # check download
-# Expected number of files
-files_expected <- length(all_dates)
 
-# actual number of files
 files_actual <- length(list.files(save_dir))
+
+check_it <- if(files_expected != files_actual) {
+  "File counts don't match."
+} else {
+  "All files are present."
+}
+
+check_it
+
