@@ -1,0 +1,395 @@
+---
+title: "Summarizing Bering Sea Daily Sea Ice Concentration Data"
+author: "D. Rizzolo"
+date: "`r Sys.Date()`"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# got packages
+library(ggplot2) # plot data
+library(imager) # load and display jpegs 
+```
+
+# Sourced Satellite data
+Variation in spectacled eider apparent survival (Flint et al. 2016, Christie et al. 2018, Dunham et al. 2021), breeding area abundance (Petersen and Douglas 2004) and nest survival (Friendly et al. 2025) has been associated with winter sea ice in the Bering Sea. Sea ice data have been sourced from the National Snow and Ice Data Center's (NSIDC) remotely sensed data on sea ice concentration (sic). The NSIDC data are derived using measurements from the Scanning Multichannel Microwave Radiometer (SMMR) on the Nimbus-7 satellite and from the Special Sensor Microwave/Imager (SSM/I) sensors on the Defense Meteorological Satellite Program's (DMSP) -F8, -F11, and -F13 satellites. 
+
+These data are processed with NSIDC's Advanced Microwave Scanning Radiometer - Earth Observing System (AMSR-E) Bootstrap Algorithm with daily varying tie-points, which is currently version 4.0 (released May 2024). Data and data documentation are available at: https://nsidc.org/data/nsidc-0079/versions/4.
+
+# Spectacled eider "core" wintering area
+This code summarizes sea ice concentration data following previously established and repeatedly applied methods (Petersen and Douglas 2005, Flint et al. 2016, Christie et a. 2018, Dunham et al. 2021, Friendly et al. 2025). The location of interest is delineated by four 25 x 25 km pixels that overlap the area of use (higher than average density of satellite transmitter locations from 13 individuals, both sexes, between 21 Nov to 31 Jan 1993-1997) designated the "core area" (Petersen and Douglas 2004). This area is in the northern Bering Sea, approximately 100 km west-southwest of St. Lawrence Island. 
+
+Subsequent satellite transmitter deployments on spectacled eiders (Sexson et al. 2014, USFWS 2021) indicate that winter space use, including the core area, varies annually, but is consistently south of St. Lawrence Island. Despite this spatial variation, the core area from 1990s is used to index sea ice conditions across the broader area used by wintering spectacled eiders. Patterns in sea ice extent and sea ice area among years are reflected in sea ice cover in the core area delineated by Petersen and Douglas (see references in Friendly et al. 2025). Accordingly, the "core" area is more appropriately called the "ice" area.
+
+```{r fig.width = 10, fig.height = 12}
+map_core <- load.image("output/figs/just_core.jpg")
+plot(map_core, main = "Area Used to Quantify Sea Ice for Spectacled Eiders", axes = FALSE)
+```
+
+# Data access and processing
+The raw data summarized here were downloaded with script *00_download_seaice_data_from_nsidc.R*, converted from the native netCDF format to geotifs with script *01_convert_daily_netcdf_bootstrap_to_geotif.R*, and extracted from the pixels of interest using script *02_extract_specEider_winterIce_bootstrap_sic_geotif.R*. The "02_" script outputs the data set used as the input in this script, *sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv*.
+
+That data set, loaded as object *all.ice*, includes the pixel number (*pixel*, 1 through 16, with 1 through 4 being the *ice* area), sea ice concentration as a proportion (*bs_sic_prop*), the date of the sic measurement(*sicDate*), x and y coordinates of the cell mid-point, also in lat/lon in polar stereographic grid (EPSG:3411).
+
+```{r load_data}
+all.ice <- read.csv("output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv", header=T)
+str(all.ice)
+```
+
+In version 3 of the sic data, data were in permil that I converted to percent. Version 4 data are proportions that I change to percentages. The code then subsets the data from 16 pixels to the 4 pixels of the core area to use for sic data summaries. 
+
+```{r subset}
+# 1. Change sic from proportion to percent ####
+all.ice$bs_sic <- all.ice$bs_sic_prop*100 # version 4 sic are proportions, previous versions sic was permil
+str(all.ice)
+all.ice$sicDate <- as.Date(as.character(all.ice$sicDate), format = "%Y%m%d") # format as date
+hist(all.ice$bs_sic)
+
+# 2. Select 4 core pixels ####
+# subset to the pixels in the core area (pixels 1 to 4, as per "specEider_winter_pixel_sample_map.png", see supplementary data from Christie et al. (2018)
+core_data <- subset(all.ice, pixel < 5)
+table(core_data$pixel)
+hist(core_data$bs_sic)
+```
+
+The value used to summarize sic is the count of days when the minimum sic value among the 4 cells was >= 95% during the winter (01 Nov to 30 April, inclusive). The idea underlying this approach is that this count is more relevant to a spectacled eider wintering in the Bering Sea than mean sic during a given winter, as means are mathematical creations, not reality. Daily values and timing of those values can be very different and still have the same mean.
+
+```{r getMin}
+# 3. Aggregate the minimum pixel sic value across the 4 core pixels for each day #####
+daily_min_sic_core <- aggregate(core_data$bs_sic ~ core_data$sicDate, FUN = min) # find the min sic value of the 4 pixel values for each day
+colnames(daily_min_sic_core) <- c("date", "sic_min4")
+head(daily_min_sic_core)
+hist(daily_min_sic_core$sic_min4)
+
+```
+
+Mark-resight occasions correspond to the breeding season, May-June, and data run from the summer of 1992 through the summer of 2025. SIC data for a given calendar year are typically processed and released early in the following year. Data summarized here as of April 2026 include 1992-2026. 
+
+Survival over a given year, June year t to June year t + 1, would be potentially influenced by sea ice during the winter that began the preceding calender year. Here, that preceding winter (Nov year t through April year t+1) is created as *year_winter*. 
+
+``` {r define_year}
+# 4. Data wrangling steps ####
+daily_min_sic_core$month <- as.numeric(format(daily_min_sic_core$date, "%m")) # assign column for month of year as numeric
+table(daily_min_sic_core$month)
+daily_min_sic_core$year_cal <- as.numeric(format(daily_min_sic_core$date, "%Y")) # assign calendar year
+daily_min_sic_core$year_winter <- ifelse(daily_min_sic_core$month > 10,daily_min_sic_core$year,daily_min_sic_core$year-1) # assign winter year as the year at the start of the winter
+table (daily_min_sic_core$year_winter)
+# remove years with incomplete winter data: 1978 (start year, incomplete; data were every-other-day 1978-part way through 1987, and likely most recent year)
+daily_min_sic_core <- subset(daily_min_sic_core, year_winter != 1978 & year_winter != 2024) # complete 2024 data not currently available, on data through 31 Dec 2024
+table (daily_min_sic_core$year_winter)
+
+```
+
+# Designating seasons
+
+Seasons were defined in different ways in previous studies: 
+  -Winter in Petersen & Douglas (2005): 01 Dec-30 Mar,  
+  -Winter in Flint et al. (2016) and Christie et al. (2018): 01 Nov-30 Apr
+  -Spring in Petersen & Douglas (2005): 01-30 April
+
+Here, I use these time frames of interest:
+  -Winter-Spring: 01 Nov - 30 Apr (although typically no ice in Nov, except 1983, 1987, 1999)
+  -Winter: 01 Nov-30 Mar
+  -Spring: 01-30 April
+
+# Counts of ice days in the core area
+
+Prior to Christie et al. (2018), the effect of sea ice on spectacled eiders was related to the number of days of high ice cover (Petersen and Douglas 2004, Flint et al. 2016). Both of those studies used a count of days wtih a minimum of >=95% among the 4 pixels overlapping the core area. Christie et al. (2018) used a count of days with a minimum of > 95% sea ice cover. 
+
+Here, I use > = 95% cover during winter-spring (ws: 01 Nov-30 Apr), winter (01 Nov-31 March), and spring (sp: 01-30 Apr).
+
+```{r hi-ice}
+
+# 5. Count high (>= 95%) sic days for WINTER+SPRING (01 Nov - 30 Apr): ws_hi ####
+
+daily_min_sic_core$hi_ice <- ifelse(daily_min_sic_core$sic_min4 >= 95,1,0)
+hist(daily_min_sic_core$hi_ice)
+# AND create indicator variable (lo_ice) for days with min sic < 15% (Christie et al. 2018; Fig. 4)
+daily_min_sic_core$lo_ice <- ifelse(daily_min_sic_core$sic_min4 < 15, 1, 0)
+hist(daily_min_sic_core$lo_ice)
+table(daily_min_sic_core$lo_ice)
+
+# Seasons as defined previously: Petersen & Douglas winter=Dec-Mar, spring=April; Flint et al. 2016 & Christie et al. 2018: winter = 01 Nov-30 Apr
+# Here, I use these time frames of interest:
+# Winter-Spring: 01 Nov - 30 Apr (although typically no ice in Nov, except 1983, 1987, 1999)
+# Winter: 01 Nov-30 Mar
+# Spring: 01-30 April
+
+# count total days with >= 95% ice cover for each year_winter
+ws_hi <- aggregate(daily_min_sic_core$hi_ice ~ daily_min_sic_core$year_winter, FUN = sum)
+colnames(ws_hi) <- c("year_winter", "ws_count_sic_ge95")
+hist(ws_hi$ws_count_sic_ge95)
+# plot ws_count_sic_ge95
+p.ws_hi <- ggplot(ws_hi, aes(x=year_winter, y=ws_count_sic_ge95))+
+  geom_line() +
+  labs(y = "Days of High (>=95%) Sea Ice Cover", x = "Year") +
+  theme_bw()
+p.ws_hi
+ggsave("output/figs/plot_count_days_ge95pct_sic_1992-2023.png", width = 6, height = 3, units = "in")
+
+# 6. Count high sic days for WINTER (01 Nov - 31 March): winter_hi ####
+summary(daily_min_sic_core)
+winter_sic_core <- subset(daily_min_sic_core, month != 4 & month != 5 ) # subset data winter (winter: 01 Nov-31 March)
+table(winter_sic_core$month) # winter_sic_core should only include these 5 months: Nov, Dec, Jan, Feb, March
+
+# count total days with >= 95% ice cover for each year_winter
+winter_hi <- aggregate(winter_sic_core$hi_ice ~ winter_sic_core$year_winter, FUN = sum)
+colnames(winter_hi) <- c("year_winter", "winter_count_sic_ge95")
+hist(winter_hi$winter_count_sic_ge95)
+# plot winter_count_sic_ge95
+p.winter_hi <- ggplot(winter_hi, aes(x=year_winter, y=winter_count_sic_ge95))+
+  geom_line()
+p.winter_hi
+
+# 7. Count high sic days for SPRING (01-30 Apr): spring_hi ####
+
+# subset data spring
+summary(daily_min_sic_core)
+spring_sic_core <- subset(daily_min_sic_core, month == 4 ) # remove data other than Apr
+table(spring_sic_core$month) # spring_sic should only include April
+
+# count total days with >= 95% ice cover for each year_winter
+spring_hi <- aggregate(spring_sic_core$hi_ice ~ spring_sic_core$year_winter, FUN = sum)
+colnames(spring_hi) <- c("year_winter", "spring_count_sic_ge95")
+hist(spring_hi$spring_count_sic_ge95)
+summary(spring_hi)
+# plot spring_count_sic_ge95
+p.spring_hi <- ggplot(spring_hi, aes(x=year_winter, y=spring_count_sic_ge95))+
+  geom_line()
+p.spring_hi
+
+```
+
+In Christie et al. (2018), after showing that apparent survival 1992-2015 was associated with days of high ice cover during winter in a quadratic association, the authors conducted a post-hoc analysis with sea ice concentration summarized as a count of days with ice cover < 15% and called it *minimal ice days*. This analysis showed that apparent survival declined when there were between 80 and 120 days with < 15% ice, although the pattern was driven by just 2 years that had both low survival (< 0.80) and minimal ice days (> 90 days).
+
+This code also summarized *minimal ice days* as *[season]_lo*.
+
+```{r lo_ice}
+# 8. Count low ( < 15%) sic days for WINTER+SPRING: ws_lo ####
+
+# create indicator variable (lo_ice) for days with min sic < 15% (Christie et al. 2018; Fig. 4)
+daily_min_sic_core$lo_ice <- ifelse(daily_min_sic_core$sic_min4 < 15, 1, 0)
+hist(daily_min_sic_core$lo_ice)
+table(daily_min_sic_core$lo_ice)
+
+# count total WINTER-SPRING days with < 15% ice cover for each year_winter
+ws_lo <- aggregate(daily_min_sic_core$lo_ice ~ daily_min_sic_core$year_winter, FUN = sum)
+colnames(ws_lo) <- c("year_winter", "ws_count_sic_le15")
+hist(ws_lo$ws_count_sic_le15)
+# plot ws_count_sic_le15
+p.ws_lo <- ggplot(ws_lo, aes(x=year_winter, y=ws_count_sic_le15))+
+  geom_line()
+p.ws_lo
+
+# 9. Count low sic days for WINTER: winter_lo ####
+
+# count total WINTER days with < 15% ice cover for each year_winter
+winter_lo <- aggregate(winter_sic_core$lo_ice ~ winter_sic_core$year_winter, FUN = sum)
+colnames(winter_lo) <- c("year_winter", "winter_count_sic_le15")
+hist(winter_lo$winter_count_sic_le15)
+# plot winter_count_sic_le15
+p.winter_lo <- ggplot(winter_lo, aes(x=year_winter, y=winter_count_sic_le15))+
+  geom_line()
+p.winter_lo
+
+# 10. Count low sic days for SPRING: spring_lo ####
+
+# count total SPRING days with < 15% ice cover for each year_winter
+spring_lo <- aggregate(spring_sic_core$lo_ice~spring_sic_core$year_winter, FUN = sum)
+colnames(spring_lo) <- c("year_winter", "spring_count_sic_le15")
+hist(spring_lo$spring_count_sic_le15)
+summary(spring_lo)
+# plot spring_count_sic_le15
+p.spring_lo <- ggplot(spring_lo, aes(x=year_winter, y=spring_count_sic_le15))+
+  geom_line()
+p.spring_lo
+
+
+```
+
+## Ice Severity Index
+Flint et al. (2016) further refined how the influence of high winter ice cover was quantified by creating an *ice severity index*. This index takes into account continuous periods of ice cover >= 95% in the core area, including periods with breaks of <95% ice that are only 1 day. As a result, the ice severity index takes higher values for longer periods of continuous high ice cover than shorter periods or separate 1-day periods. 
+
+The index first determines the length of each multi-day run of days with high ice cover (again, high ice cover is when the minimum value among the 4-pixels that overlap the core area). Each multi-day run is, in turn, multiplied by its natural log, transforming the linear increase in run length to a log curve, with a steep increase that eventually flattens-out and asymptotes at higher run length values. 
+
+To illustrate this at extreme values of runs of high ice days, take, for example, a winter that has a total of 80 days with >= 95% cover in the core area, but those high ice days occur as 2-day runs, for a total of 40 2-day runs, it would have an ice severity index of 55.45. If another winter with 80 days of high ice over occurred as 2 periods each with 40 days of high ice, it would have an ice severity index of 295.
+
+The code here calculates *severe ice index* using the run length extent (rle) function in base R to calculate run lengths and connect runs separated by only 1 day.
+
+``` {r calc_index}
+# 11. Calc heavy sic index (Flint et a. 2016, Christie et al. 2018) for WINTER+SPRING: ws_index ####
+# heavy sic index: runs of days >= 95% sic, including runs separated by only 1 day of <= 95% sic
+# apply sic index calcs by year: 
+
+year <- seq(1992,2023,1) # create data frame with sequence of years to feed into the function, "year" here is winter year (year in Nov)
+year.file <- data.frame(year) # convert to data frame
+
+# function to calculate high ice index for each year of data
+# NB CHANGE function to include input data set as variable so the function is repeated for each season
+heavy.ice <- function(YR){
+  
+  # subset year during which to summarize heavy ice
+  year.one <- subset(daily_min_sic_core, year_winter == YR)
+  #print(YR)
+  subice <- year.one$sic_min4 # minimum sic value across the 4 pixels for each day
+  #table(ice$month) # ice data are from Nov, Dec, Jan, Feb, Mar, and Apr
+  
+  # indicator for days >= 95% sic
+  hiIce <- ifelse(subice >= 95,1,0)
+  
+  # rle (run length encoding) function to summarize runs in ice indicator variable
+  temp.data <- rle(hiIce) # NB rle function output is 2 lists: "values" with value (in this case, 1 or 0) in the run, and "length" with length of the run
+  
+  # convert zeros in run values with a 1 on each side of them to 1 to include one-day breaks in the run, as per Flint et al. 2016
+  temp.data$values[temp.data$values == 0 & temp.data$lengths == 1] <- 1 # if a run of zeros has a length of 1, change it from zero to 1
+  
+  # convert this modified run length data set back to a data set of runs, but with single zeros within runs of 1 converted to 1's
+  y <- inverse.rle(temp.data) 
+  
+  # re-apply rle function to summarize new runs that were modified to include breaks of 1 zero
+  final.runs <- rle(y)
+  
+  high.ice <- data.frame(unclass(final.runs)) # convert rle output to data frame with 2 columns (values, lengths)
+  high.ice <- subset(high.ice, values == 1) # select only runs of 1's (remove runs of 0, where 0 = days < 95% ice cover)
+  high.ice <- subset(high.ice, lengths > 1) # select runs of 1's longer than 1 day
+  sub.I <- high.ice$lengths*log(high.ice$lengths) # calculate subcomponent of the ice index, where I = sum(D*ln(D)), where D = run of 1's as defined in Flint et al. 2016
+  
+  I <- sum(sub.I) # sum the subcomponents of I to get I for the year
+  #print(I)
+  
+}
+
+# call function for each year with lapply
+ws.out.ice <- lapply(year.file$year,heavy.ice)
+# unlist
+ws_index <- unlist(ws.out.ice)
+# bind with year
+ws_index <- cbind(year.file, ws_index)
+# plot ws_index
+ggplot(ws_index, aes(year, ws_index))+
+  geom_line()
+
+# 12. Calc heavy sic index for WINTER: winter_index ####
+# function to calcuate high ice index for each year of data
+heavy.ice <- function(YR){
+  
+  # subset year during which to summarize heavy ice
+  year.one <- subset(winter_sic_core, year_winter==YR)
+  #print(YR)
+  subice <- year.one$sic_min4 # sensor data on ice concentration
+  #table(ice$month) #ice data are from Nov, Dec, Jan, Feb, Mar
+  
+  # indicator for days >= 95%
+  hiIce <- ifelse(subice >= 95,1,0)
+  
+  # rle function to summarize runs in ice indicator variable
+  temp.data <- rle(hiIce) # NB rle function output is 2 lists: "values" with value (in this case, 1 or 0) in the run, and "length" with length of the run
+  
+  # convert zeros with a 1 on each side to 1 to include one-day breaks in the run, as per Flint et al. 2016
+  temp.data$values[temp.data$values==0 & temp.data$lengths==1] <- 1
+  
+  # convert this modified run length data set back to a data set of runs, but with single zeros within runs of 1 converted to 1's
+  y <- inverse.rle(temp.data)
+  
+  # re-apply rle function to summarize new runs that were modified to include breaks of 1 zero
+  final.runs <- rle(y)
+  
+  high.ice <- data.frame(unclass(final.runs)) # convert rle output to dataframe with 2 columns (values, lengths)
+  high.ice <- subset(high.ice, values==1) # select only runs of 1's (remove runs of 0, where 0=days < 95% ice cover)
+  high.ice <- subset(high.ice, lengths > 1) # select runs of 1's longer than 1 day
+  sub.I <- high.ice$lengths*log(high.ice$lengths) # calculate subcomponent of the ice index, where I=sum(D*ln(D)), where D=run of 1's as defined in Flint et al. 2016
+  
+  I <- sum(sub.I) # sum the subcomponents of I to get I for the year
+  #print(I)
+  
+}
+
+# call function for each year with lapply
+winter.out.ice <- lapply(year.file$year,heavy.ice)
+# unlist
+winter_index <- unlist(winter.out.ice)
+# bind with year
+winter_index <- cbind(year.file, winter_index)
+# plot winter_index
+ggplot(winter_index, aes(year, winter_index))+
+  geom_line()
+
+# 13. Calc heavy sic index for spring: spring_index #####
+heavy.ice <- function(YR){
+  
+  # subset year during which to summarize heavy ice
+  year.one <- subset(spring_sic_core, year_winter==YR)
+  #print(YR)
+  subice <- year.one$sic_min4 # sensor data on ice concentration
+  #table(ice$month) #ice data are from Apr
+  
+  # indicator for days >= 95%
+  hiIce <- ifelse(subice >= 95,1,0)
+  
+  # rle function to summarize runs in ice indicator variable
+  temp.data<-rle(hiIce) # NB rle function output is 2 lists: "values" with value (in this case, 1 or 0) in the run, and "length" with length of the run
+  
+  # convert zeros with a 1 on each side to 1 to include one-day breaks in the run, as per Flint et al. 2016
+  temp.data$values[temp.data$values==0 & temp.data$lengths==1] <- 1
+  
+  # convert this modified run length data set back to a data set of runs, but with single zeros within runs of 1 converted to 1's
+  y <- inverse.rle(temp.data)
+  
+  # re-apply rle function to summarize new runs that were modified to include breaks of 1 zero
+  final.runs <- rle(y)
+  
+  high.ice <- data.frame(unclass(final.runs)) # convert rle output to data frame with 2 columns (values, lengths)
+  high.ice <- subset(high.ice, values==1) # select only runs of 1's (remove runs of 0, where 0=days < 95% ice cover)
+  high.ice <- subset(high.ice, lengths > 1) # select runs of 1's longer than 1 day
+  sub.I <- high.ice$lengths*log(high.ice$lengths) # calculate subcomponent of the ice index, where I=sum(D*ln(D)), where D=run of 1's as defined in Flint et al. 2016
+  
+  I <- sum(sub.I) # sum the subcomponents of I to get I for the year
+  #print(I)
+  
+}
+
+# call function for each year with lapply
+spring.out.ice <- lapply(year.file$year,heavy.ice)
+# unlist
+spring_index <- unlist(spring.out.ice)
+# bind with year
+spring_index <- cbind(year.file, spring_index)
+# plot spring_index
+ggplot(spring_index, aes(year, spring_index))+
+  geom_line()
+```
+
+The sea ice summary variables are then compiled and saved as file: sea_ice_vars_1992-[most recent year].csv.
+
+The sea variables in that file include:
+  -year_winter: year index by the start of winter, Nov. For example, year_winter 2025 = 01 Nov 2025 to 30 Apr 2026
+  -ws_count_sic_ge95: count of days with >=95% cover in the ice area 01 Nov to 30 Apr
+  -winter_count_sic_ge95: count of days with >=95% cover in the ice area 01 Nov to 31 March
+  -spring_count_sic_ge95: count of days with >=95% cover in the ice area 01-30 April
+  -ws_count_sic_le15: count of days with < 15% cover in the ice area 01 Nov to 30 Apr
+  -winter_count_sic_le15: count of days with < 15% cover in the ice area 01 Nov to 31 March
+  -spring_count_sic_le15: count of days with < 15% cover in the ice area 01 Nov to 01-30 April
+  -ws_index: ice severity index (Flint et al. 2016) in the ice area 01 Nov to 30 Apr
+  -winter_index: ice severity index (Flint et al. 2016) in the ice area 01 Nov to 31 March
+  -spring_index: ice severity index (Flint et al. 2016) in the ice area 01-30 April
+  
+  Data summarized in this file correspond to the time-series of mark-resight data from Spectacled Eiders at Kigigak Island: 1992-2025.
+  
+```{r save_data}
+  # 14. Compile variables into data frame and save ####
+sea_ice_vars_1992_2025<-cbind(ws_hi,
+                              winter_hi[2],
+                              spring_hi[2],
+                              ws_lo[2],
+                              winter_lo[2],
+                              spring_lo[2],
+                              ws_index[2],
+                              winter_index[2],
+                              spring_index[2])
+
+# 15. Save compiled sic variables as csv ####
+write.csv(sea_ice_vars_1992_2025, "output/sic_beringSea_4pixels/sea_ice_vars_1995_2025.csv", row.names = FALSE)
+```
