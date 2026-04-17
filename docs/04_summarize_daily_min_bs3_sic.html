@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="D. Rizzolo" />
+
+<meta name="date" content="2026-04-17" />
+
+<title>Summarizing Bering Sea Daily Sea Ice Concentration Data</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">sea_ice_bs_core</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00_download_seaice_data_from_nsidc_20250902.Rmd">NSIDC Data Download</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Summarizing Bering Sea Daily Sea Ice
+Concentration Data</h1>
+<h4 class="author">D. Rizzolo</h4>
+<h4 class="date">2026-04-17</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-04-17
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>sea_ice_bs_core/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250904code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250904)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250904code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250904)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreea79c96dbb2b8cac8d11fa57d2de2e3a18fef4468targetblanka79c96da">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/a79c96dbb2b8cac8d11fa57d2de2e3a18fef4468" target="_blank">a79c96d</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreea79c96dbb2b8cac8d11fa57d2de2e3a18fef4468targetblanka79c96da"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/a79c96dbb2b8cac8d11fa57d2de2e3a18fef4468" target="_blank">a79c96d</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    code/.Rhistory
+    Ignored:    code/archive/
+    Ignored:    code/sic_nsidc_download_summarize/archive/
+    Ignored:    data/sourced_data/bremen_daily_sic/
+    Ignored:    data/sourced_data/nsidc_sic_v3/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_temp/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231_temp/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20241101_20250430/
+    Ignored:    library/
+    Ignored:    output/archive/
+    Ignored:    temp/
+
+Untracked files:
+    Untracked:  analysis/README_updated_sea_ice_nsidc_download_20260407.txt
+    Untracked:  code/sic_nsidc_download_summarize/README_updated_sea_ice_nsidc_download_20260407.txt
+    Untracked:  code/sic_nsidc_download_summarize/rbind_sic_bootstrapv4_16pixles_timeSeries_recentYear.R
+    Untracked:  metadata.json
+    Untracked:  output/figs/just_core.jpg
+    Untracked:  output/figs/plot_count_days_ge95pct_sic_1992-2024.png
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_2024-2025.csv
+    Untracked:  output/sic_beringSea_4pixels/compare_christie_to_v4_daily_4pixel_min_sic_1992-2024.csv
+    Untracked:  output/sic_beringSea_4pixels/daily_4pixel_min_sic_1992-2024.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1995_2025.csv
+
+Unstaged changes:
+    Modified:   code/create_workflowr_prj.R
+    Modified:   code/sic_nsidc_download_summarize/00_download_seaice_data_from_nsidc_20250903.R
+    Modified:   code/sic_nsidc_download_summarize/01_convert_daily_netcdf_bootstrap_to_geotif_20250902.R
+    Modified:   code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.R
+    Modified:   code/sic_nsidc_download_summarize/04_summarize_daily_min4_bs3_append_to_allYears_20250902.R
+    Modified:   data/data_christie_et_al_2018/spei_winter_ice.xlsx
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/04_summarize_daily_min_bs3_sic.Rmd</code>) and HTML
+(<code>docs/04_summarize_daily_min_bs3_sic.html</code>) files. If you’ve
+configured a remote Git repository (see <code>?wflow_git_remote</code>),
+click on the hyperlinks in the table below to view the files as they
+were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/blob/a79c96dbb2b8cac8d11fa57d2de2e3a18fef4468/analysis/04_summarize_daily_min_bs3_sic.Rmd" target="_blank">a79c96d</a>
+</td>
+<td>
+DJRIZZ
+</td>
+<td>
+2026-04-17
+</td>
+<td>
+Updated with sea ice data from Jan-Apr 2026
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="sourced-satellite-data" class="section level1">
+<h1>Sourced Satellite data</h1>
+<p>Variation in spectacled eider apparent survival (Flint et al. 2016,
+Christie et al. 2018, Dunham et al. 2021), breeding area abundance
+(Petersen and Douglas 2004) and nest survival (Friendly et al. 2025) has
+been associated with winter sea ice in the Bering Sea. Sea ice data have
+been sourced from the National Snow and Ice Data Center’s (NSIDC)
+remotely sensed data on sea ice concentration (sic). The NSIDC data are
+derived using measurements from the Scanning Multichannel Microwave
+Radiometer (SMMR) on the Nimbus-7 satellite and from the Special Sensor
+Microwave/Imager (SSM/I) sensors on the Defense Meteorological Satellite
+Program’s (DMSP) -F8, -F11, and -F13 satellites.</p>
+<p>These data are processed with NSIDC’s Advanced Microwave Scanning
+Radiometer - Earth Observing System (AMSR-E) Bootstrap Algorithm with
+daily varying tie-points, which is currently version 4.0 (released May
+2024). Data and data documentation are available at: <a
+href="https://nsidc.org/data/nsidc-0079/versions/4"
+class="uri">https://nsidc.org/data/nsidc-0079/versions/4</a>.</p>
+</div>
+<div id="spectacled-eider-core-wintering-area" class="section level1">
+<h1>Spectacled eider “core” wintering area</h1>
+<p>This code summarizes sea ice concentration data following previously
+established and repeatedly applied methods (Petersen and Douglas 2005,
+Flint et al. 2016, Christie et a. 2018, Dunham et al. 2021, Friendly et
+al. 2025). The location of interest is delineated by four 25 x 25 km
+pixels that overlap the area of use (higher than average density of
+satellite transmitter locations from 13 individuals, both sexes, between
+21 Nov to 31 Jan 1993-1997) designated the “core area” (Petersen and
+Douglas 2004). This area is in the northern Bering Sea, approximately
+100 km west-southwest of St. Lawrence Island.</p>
+<p>Subsequent satellite transmitter deployments on spectacled eiders
+(Sexson et al. 2014, USFWS 2021) indicate that winter space use,
+including the core area, varies annually, but is consistently south of
+St. Lawrence Island. Despite this spatial variation, the core area from
+1990s is used to index sea ice conditions across the broader area used
+by wintering spectacled eiders. Patterns in sea ice extent and sea ice
+area among years are reflected in sea ice cover in the core area
+delineated by Petersen and Douglas (see references in Friendly et
+al. 2025). Accordingly, the “core” area is more appropriately called the
+“ice” area.</p>
+<pre class="r"><code>map_core &lt;- load.image(&quot;output/figs/just_core.jpg&quot;)
+plot(map_core, main = &quot;Area Used to Quantify Sea Ice for Spectacled Eiders&quot;, axes = FALSE)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/unnamed-chunk-1-1.png" alt="" width="960" style="display: block; margin: auto;" /></p>
+</div>
+<div id="data-access-and-processing" class="section level1">
+<h1>Data access and processing</h1>
+<p>The raw data summarized here were downloaded with script
+<em>00_download_seaice_data_from_nsidc.R</em>, converted from the native
+netCDF format to geotifs with script
+<em>01_convert_daily_netcdf_bootstrap_to_geotif.R</em>, and extracted
+from the pixels of interest using script
+<em>02_extract_specEider_winterIce_bootstrap_sic_geotif.R</em>. The
+“02_” script outputs the data set used as the input in this script,
+<em>sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv</em>.</p>
+<p>That data set, loaded as object <em>all.ice</em>, includes the pixel
+number (<em>pixel</em>, 1 through 16, with 1 through 4 being the
+<em>ice</em> area), sea ice concentration as a proportion
+(<em>bs_sic_prop</em>), the date of the sic
+measurement(<em>sicDate</em>), x and y coordinates of the cell
+mid-point, also in lat/lon in polar stereographic grid (EPSG:3411).</p>
+<pre class="r"><code>all.ice &lt;- read.csv(&quot;output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv&quot;, header=T)
+str(all.ice)</code></pre>
+<pre><code>&#39;data.frame&#39;:   92784 obs. of  7 variables:
+ $ pixel      : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ bs_sic_prop: num  0 0 0 0 0 0 0 0 0 0 ...
+ $ sicDate    : int  19921101 19921101 19921101 19921101 19921101 19921101 19921101 19921101 19921101 19921101 ...
+ $ x          : num  -2411473 -2387277 -2411473 -2387277 -2410667 ...
+ $ y          : num  1887832 1887832 1862022 1860409 1837019 ...
+ $ lon        : num  -173 -173 -173 -173 -172 ...
+ $ lat        : num  62.3 62.4 62.4 62.6 62.5 ...</code></pre>
+<p>In version 3 of the sic data, data were in permil that I converted to
+percent. Version 4 data are proportions that I change to percentages.
+The code then subsets the data from 16 pixels to the 4 pixels of the
+core area to use for sic data summaries.</p>
+<pre class="r"><code># 1. Change sic from proportion to percent ####
+all.ice$bs_sic &lt;- all.ice$bs_sic_prop*100 # version 4 sic are proportions, previous versions sic was permil
+str(all.ice)</code></pre>
+<pre><code>&#39;data.frame&#39;:   92784 obs. of  8 variables:
+ $ pixel      : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ bs_sic_prop: num  0 0 0 0 0 0 0 0 0 0 ...
+ $ sicDate    : int  19921101 19921101 19921101 19921101 19921101 19921101 19921101 19921101 19921101 19921101 ...
+ $ x          : num  -2411473 -2387277 -2411473 -2387277 -2410667 ...
+ $ y          : num  1887832 1887832 1862022 1860409 1837019 ...
+ $ lon        : num  -173 -173 -173 -173 -172 ...
+ $ lat        : num  62.3 62.4 62.4 62.6 62.5 ...
+ $ bs_sic     : num  0 0 0 0 0 0 0 0 0 0 ...</code></pre>
+<pre class="r"><code>all.ice$sicDate &lt;- as.Date(as.character(all.ice$sicDate), format = &quot;%Y%m%d&quot;) # format as date
+hist(all.ice$bs_sic)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/subset-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 2. Select 4 core pixels ####
+# subset to the pixels in the core area (pixels 1 to 4, as per &quot;specEider_winter_pixel_sample_map.png&quot;, see supplementary data from Christie et al. (2018)
+core_data &lt;- subset(all.ice, pixel &lt; 5)
+table(core_data$pixel)</code></pre>
+<pre><code>
+   1    2    3    4 
+5799 5799 5799 5799 </code></pre>
+<pre class="r"><code>hist(core_data$bs_sic)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/subset-2.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p>The value used to summarize sic is the count of days when the minimum
+sic value among the 4 cells was &gt;= 95% during the winter (01 Nov to
+30 April, inclusive). The idea underlying this approach is that this
+count is more relevant to a spectacled eider wintering in the Bering Sea
+than mean sic during a given winter, as means are mathematical
+creations, not reality. Daily values and timing of those values can be
+very different and still have the same mean.</p>
+<pre class="r"><code># 3. Aggregate the minimum pixel sic value across the 4 core pixels for each day #####
+daily_min_sic_core &lt;- aggregate(core_data$bs_sic ~ core_data$sicDate, FUN = min) # find the min sic value of the 4 pixel values for each day
+colnames(daily_min_sic_core) &lt;- c(&quot;date&quot;, &quot;sic_min4&quot;)
+head(daily_min_sic_core)</code></pre>
+<pre><code>        date sic_min4
+1 1992-11-01        0
+2 1992-11-02        0
+3 1992-11-03        0
+4 1992-11-04        0
+5 1992-11-05        0
+6 1992-11-06        0</code></pre>
+<pre class="r"><code>hist(daily_min_sic_core$sic_min4)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/getMin-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p>Mark-resight occasions correspond to the breeding season, May-June,
+and data run from the summer of 1992 through the summer of 2025. SIC
+data for a given calendar year are typically processed and released
+early in the following year. Data summarized here as of April 2026
+include 1992-2026.</p>
+<p>Survival over a given year, June year t to June year t + 1, would be
+potentially influenced by sea ice during the winter that began the
+preceding calender year. Here, that preceding winter (Nov year t through
+April year t+1) is created as <em>year_winter</em>.</p>
+<pre class="r"><code># 4. Data wrangling steps ####
+daily_min_sic_core$month &lt;- as.numeric(format(daily_min_sic_core$date, &quot;%m&quot;)) # assign column for month of year as numeric
+table(daily_min_sic_core$month)</code></pre>
+<pre><code>
+  1   2   3   4  11  12 
+992 904 991 960 960 992 </code></pre>
+<pre class="r"><code>daily_min_sic_core$year_cal &lt;- as.numeric(format(daily_min_sic_core$date, &quot;%Y&quot;)) # assign calendar year
+daily_min_sic_core$year_winter &lt;- ifelse(daily_min_sic_core$month &gt; 10,daily_min_sic_core$year,daily_min_sic_core$year-1) # assign winter year as the year at the start of the winter
+table (daily_min_sic_core$year_winter)</code></pre>
+<pre><code>
+1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 
+ 181  181  181  182  181  181  181  182  181  181  181  182  181  181  181  182 
+2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 
+ 181  181  181  182  181  181  181  182  181  181  181  182  181  181  181  181 </code></pre>
+<pre class="r"><code># remove years with incomplete winter data: 1978 (start year, incomplete; data were every-other-day 1978-part way through 1987, and likely most recent year)
+daily_min_sic_core &lt;- subset(daily_min_sic_core, year_winter != 1978 &amp; year_winter != 2024) # complete 2024 data not currently available, on data through 31 Dec 2024
+table (daily_min_sic_core$year_winter)</code></pre>
+<pre><code>
+1992 1993 1994 1995 1996 1997 1998 1999 2000 2001 2002 2003 2004 2005 2006 2007 
+ 181  181  181  182  181  181  181  182  181  181  181  182  181  181  181  182 
+2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020 2021 2022 2023 
+ 181  181  181  182  181  181  181  182  181  181  181  182  181  181  181  181 </code></pre>
+</div>
+<div id="designating-seasons" class="section level1">
+<h1>Designating seasons</h1>
+<p>Seasons were defined in different ways in previous studies: -Winter
+in Petersen &amp; Douglas (2005): 01 Dec-30 Mar,<br />
+-Winter in Flint et al. (2016) and Christie et al. (2018): 01 Nov-30 Apr
+-Spring in Petersen &amp; Douglas (2005): 01-30 April</p>
+<p>Here, I use these time frames of interest: -Winter-Spring: 01 Nov -
+30 Apr (although typically no ice in Nov, except 1983, 1987, 1999)
+-Winter: 01 Nov-30 Mar -Spring: 01-30 April</p>
+</div>
+<div id="counts-of-ice-days-in-the-core-area" class="section level1">
+<h1>Counts of ice days in the core area</h1>
+<p>Prior to Christie et al. (2018), the effect of sea ice on spectacled
+eiders was related to the number of days of high ice cover (Petersen and
+Douglas 2004, Flint et al. 2016). Both of those studies used a count of
+days wtih a minimum of &gt;=95% among the 4 pixels overlapping the core
+area. Christie et al. (2018) used a count of days with a minimum of &gt;
+95% sea ice cover.</p>
+<p>Here, I use &gt; = 95% cover during winter-spring (ws: 01 Nov-30
+Apr), winter (01 Nov-31 March), and spring (sp: 01-30 Apr).</p>
+<pre class="r"><code># 5. Count high (&gt;= 95%) sic days for WINTER+SPRING (01 Nov - 30 Apr): ws_hi ####
+
+daily_min_sic_core$hi_ice &lt;- ifelse(daily_min_sic_core$sic_min4 &gt;= 95,1,0)
+hist(daily_min_sic_core$hi_ice)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># AND create indicator variable (lo_ice) for days with min sic &lt; 15% (Christie et al. 2018; Fig. 4)
+daily_min_sic_core$lo_ice &lt;- ifelse(daily_min_sic_core$sic_min4 &lt; 15, 1, 0)
+hist(daily_min_sic_core$lo_ice)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-2.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>table(daily_min_sic_core$lo_ice)</code></pre>
+<pre><code>
+   0    1 
+3746 2053 </code></pre>
+<pre class="r"><code># Seasons as defined previously: Petersen &amp; Douglas winter=Dec-Mar, spring=April; Flint et al. 2016 &amp; Christie et al. 2018: winter = 01 Nov-30 Apr
+# Here, I use these time frames of interest:
+# Winter-Spring: 01 Nov - 30 Apr (although typically no ice in Nov, except 1983, 1987, 1999)
+# Winter: 01 Nov-30 Mar
+# Spring: 01-30 April
+
+# count total days with &gt;= 95% ice cover for each year_winter
+ws_hi &lt;- aggregate(daily_min_sic_core$hi_ice ~ daily_min_sic_core$year_winter, FUN = sum)
+colnames(ws_hi) &lt;- c(&quot;year_winter&quot;, &quot;ws_count_sic_ge95&quot;)
+hist(ws_hi$ws_count_sic_ge95)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-3.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># plot ws_count_sic_ge95
+p.ws_hi &lt;- ggplot(ws_hi, aes(x=year_winter, y=ws_count_sic_ge95))+
+  geom_line() +
+  labs(y = &quot;Days of High (&gt;=95%) Sea Ice Cover&quot;, x = &quot;Year&quot;) +
+  theme_bw()
+p.ws_hi</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-4.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggsave(&quot;output/figs/plot_count_days_ge95pct_sic_1992-2023.png&quot;, width = 6, height = 3, units = &quot;in&quot;)
+
+# 6. Count high sic days for WINTER (01 Nov - 31 March): winter_hi ####
+summary(daily_min_sic_core)</code></pre>
+<pre><code>      date               sic_min4          month           year_cal   
+ Min.   :1992-11-01   Min.   :  0.00   Min.   : 1.000   Min.   :1992  
+ 1st Qu.:2000-07-31   1st Qu.:  0.00   1st Qu.: 2.000   1st Qu.:2000  
+ Median :2008-04-30   Median : 88.60   Median : 4.000   Median :2008  
+ Mean   :2008-07-30   Mean   : 56.99   Mean   : 5.531   Mean   :2008  
+ 3rd Qu.:2016-04-29   3rd Qu.: 96.90   3rd Qu.:11.000   3rd Qu.:2016  
+ Max.   :2024-04-30   Max.   :100.00   Max.   :12.000   Max.   :2024  
+  year_winter       hi_ice           lo_ice     
+ Min.   :1992   Min.   :0.0000   Min.   :0.000  
+ 1st Qu.:2000   1st Qu.:0.0000   1st Qu.:0.000  
+ Median :2007   Median :0.0000   Median :0.000  
+ Mean   :2007   Mean   :0.3218   Mean   :0.354  
+ 3rd Qu.:2015   3rd Qu.:1.0000   3rd Qu.:1.000  
+ Max.   :2023   Max.   :1.0000   Max.   :1.000  </code></pre>
+<pre class="r"><code>winter_sic_core &lt;- subset(daily_min_sic_core, month != 4 &amp; month != 5 ) # subset data winter (winter: 01 Nov-31 March)
+table(winter_sic_core$month) # winter_sic_core should only include these 5 months: Nov, Dec, Jan, Feb, March</code></pre>
+<pre><code>
+  1   2   3  11  12 
+992 904 991 960 992 </code></pre>
+<pre class="r"><code># count total days with &gt;= 95% ice cover for each year_winter
+winter_hi &lt;- aggregate(winter_sic_core$hi_ice ~ winter_sic_core$year_winter, FUN = sum)
+colnames(winter_hi) &lt;- c(&quot;year_winter&quot;, &quot;winter_count_sic_ge95&quot;)
+hist(winter_hi$winter_count_sic_ge95)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-5.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># plot winter_count_sic_ge95
+p.winter_hi &lt;- ggplot(winter_hi, aes(x=year_winter, y=winter_count_sic_ge95))+
+  geom_line()
+p.winter_hi</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-6.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 7. Count high sic days for SPRING (01-30 Apr): spring_hi ####
+
+# subset data spring
+summary(daily_min_sic_core)</code></pre>
+<pre><code>      date               sic_min4          month           year_cal   
+ Min.   :1992-11-01   Min.   :  0.00   Min.   : 1.000   Min.   :1992  
+ 1st Qu.:2000-07-31   1st Qu.:  0.00   1st Qu.: 2.000   1st Qu.:2000  
+ Median :2008-04-30   Median : 88.60   Median : 4.000   Median :2008  
+ Mean   :2008-07-30   Mean   : 56.99   Mean   : 5.531   Mean   :2008  
+ 3rd Qu.:2016-04-29   3rd Qu.: 96.90   3rd Qu.:11.000   3rd Qu.:2016  
+ Max.   :2024-04-30   Max.   :100.00   Max.   :12.000   Max.   :2024  
+  year_winter       hi_ice           lo_ice     
+ Min.   :1992   Min.   :0.0000   Min.   :0.000  
+ 1st Qu.:2000   1st Qu.:0.0000   1st Qu.:0.000  
+ Median :2007   Median :0.0000   Median :0.000  
+ Mean   :2007   Mean   :0.3218   Mean   :0.354  
+ 3rd Qu.:2015   3rd Qu.:1.0000   3rd Qu.:1.000  
+ Max.   :2023   Max.   :1.0000   Max.   :1.000  </code></pre>
+<pre class="r"><code>spring_sic_core &lt;- subset(daily_min_sic_core, month == 4 ) # remove data other than Apr
+table(spring_sic_core$month) # spring_sic should only include April</code></pre>
+<pre><code>
+  4 
+960 </code></pre>
+<pre class="r"><code># count total days with &gt;= 95% ice cover for each year_winter
+spring_hi &lt;- aggregate(spring_sic_core$hi_ice ~ spring_sic_core$year_winter, FUN = sum)
+colnames(spring_hi) &lt;- c(&quot;year_winter&quot;, &quot;spring_count_sic_ge95&quot;)
+hist(spring_hi$spring_count_sic_ge95)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-7.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>summary(spring_hi)</code></pre>
+<pre><code>  year_winter   spring_count_sic_ge95
+ Min.   :1992   Min.   : 0.00        
+ 1st Qu.:2000   1st Qu.: 5.75        
+ Median :2008   Median :12.00        
+ Mean   :2008   Mean   :11.91        
+ 3rd Qu.:2015   3rd Qu.:17.25        
+ Max.   :2023   Max.   :29.00        </code></pre>
+<pre class="r"><code># plot spring_count_sic_ge95
+p.spring_hi &lt;- ggplot(spring_hi, aes(x=year_winter, y=spring_count_sic_ge95))+
+  geom_line()
+p.spring_hi</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/hi-ice-8.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p>In Christie et al. (2018), after showing that apparent survival
+1992-2015 was associated with days of high ice cover during winter in a
+quadratic association, the authors conducted a post-hoc analysis with
+sea ice concentration summarized as a count of days with ice cover &lt;
+15% and called it <em>minimal ice days</em>. This analysis showed that
+apparent survival declined when there were between 80 and 120 days with
+&lt; 15% ice, although the pattern was driven by just 2 years that had
+both low survival (&lt; 0.80) and minimal ice days (&gt; 90 days).</p>
+<p>This code also summarized <em>minimal ice days</em> as
+*[season]_lo*.</p>
+<pre class="r"><code># 8. Count low ( &lt; 15%) sic days for WINTER+SPRING: ws_lo ####
+
+# create indicator variable (lo_ice) for days with min sic &lt; 15% (Christie et al. 2018; Fig. 4)
+daily_min_sic_core$lo_ice &lt;- ifelse(daily_min_sic_core$sic_min4 &lt; 15, 1, 0)
+hist(daily_min_sic_core$lo_ice)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>table(daily_min_sic_core$lo_ice)</code></pre>
+<pre><code>
+   0    1 
+3746 2053 </code></pre>
+<pre class="r"><code># count total WINTER-SPRING days with &lt; 15% ice cover for each year_winter
+ws_lo &lt;- aggregate(daily_min_sic_core$lo_ice ~ daily_min_sic_core$year_winter, FUN = sum)
+colnames(ws_lo) &lt;- c(&quot;year_winter&quot;, &quot;ws_count_sic_le15&quot;)
+hist(ws_lo$ws_count_sic_le15)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-2.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># plot ws_count_sic_le15
+p.ws_lo &lt;- ggplot(ws_lo, aes(x=year_winter, y=ws_count_sic_le15))+
+  geom_line()
+p.ws_lo</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-3.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 9. Count low sic days for WINTER: winter_lo ####
+
+# count total WINTER days with &lt; 15% ice cover for each year_winter
+winter_lo &lt;- aggregate(winter_sic_core$lo_ice ~ winter_sic_core$year_winter, FUN = sum)
+colnames(winter_lo) &lt;- c(&quot;year_winter&quot;, &quot;winter_count_sic_le15&quot;)
+hist(winter_lo$winter_count_sic_le15)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-4.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># plot winter_count_sic_le15
+p.winter_lo &lt;- ggplot(winter_lo, aes(x=year_winter, y=winter_count_sic_le15))+
+  geom_line()
+p.winter_lo</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-5.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 10. Count low sic days for SPRING: spring_lo ####
+
+# count total SPRING days with &lt; 15% ice cover for each year_winter
+spring_lo &lt;- aggregate(spring_sic_core$lo_ice~spring_sic_core$year_winter, FUN = sum)
+colnames(spring_lo) &lt;- c(&quot;year_winter&quot;, &quot;spring_count_sic_le15&quot;)
+hist(spring_lo$spring_count_sic_le15)</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-6.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>summary(spring_lo)</code></pre>
+<pre><code>  year_winter   spring_count_sic_le15
+ Min.   :1992   Min.   : 0.000       
+ 1st Qu.:2000   1st Qu.: 0.000       
+ Median :2008   Median : 0.000       
+ Mean   :2008   Mean   : 3.594       
+ 3rd Qu.:2015   3rd Qu.: 4.000       
+ Max.   :2023   Max.   :30.000       </code></pre>
+<pre class="r"><code># plot spring_count_sic_le15
+p.spring_lo &lt;- ggplot(spring_lo, aes(x=year_winter, y=spring_count_sic_le15))+
+  geom_line()
+p.spring_lo</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/lo_ice-7.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<div id="ice-severity-index" class="section level2">
+<h2>Ice Severity Index</h2>
+<p>Flint et al. (2016) further refined how the influence of high winter
+ice cover was quantified by creating an <em>ice severity index</em>.
+This index takes into account continuous periods of ice cover &gt;= 95%
+in the core area, including periods with breaks of &lt;95% ice that are
+only 1 day. As a result, the ice severity index takes higher values for
+longer periods of continuous high ice cover than shorter periods or
+separate 1-day periods.</p>
+<p>The index first determines the length of each multi-day run of days
+with high ice cover (again, high ice cover is when the minimum value
+among the 4-pixels that overlap the core area). Each multi-day run is,
+in turn, multiplied by its natural log, transforming the linear increase
+in run length to a log curve, with a steep increase that eventually
+flattens-out and asymptotes at higher run length values.</p>
+<p>To illustrate this at extreme values of runs of high ice days, take,
+for example, a winter that has a total of 80 days with &gt;= 95% cover
+in the core area, but those high ice days occur as 2-day runs, for a
+total of 40 2-day runs, it would have an ice severity index of 55.45. If
+another winter with 80 days of high ice over occurred as 2 periods each
+with 40 days of high ice, it would have an ice severity index of
+295.</p>
+<p>The code here calculates <em>severe ice index</em> using the run
+length extent (rle) function in base R to calculate run lengths and
+connect runs separated by only 1 day.</p>
+<pre class="r"><code># 11. Calc heavy sic index (Flint et a. 2016, Christie et al. 2018) for WINTER+SPRING: ws_index ####
+# heavy sic index: runs of days &gt;= 95% sic, including runs separated by only 1 day of &lt;= 95% sic
+# apply sic index calcs by year: 
+
+year &lt;- seq(1992,2023,1) # create data frame with sequence of years to feed into the function, &quot;year&quot; here is winter year (year in Nov)
+year.file &lt;- data.frame(year) # convert to data frame
+
+# function to calculate high ice index for each year of data
+# NB CHANGE function to include input data set as variable so the function is repeated for each season
+heavy.ice &lt;- function(YR){
+  
+  # subset year during which to summarize heavy ice
+  year.one &lt;- subset(daily_min_sic_core, year_winter == YR)
+  #print(YR)
+  subice &lt;- year.one$sic_min4 # minimum sic value across the 4 pixels for each day
+  #table(ice$month) # ice data are from Nov, Dec, Jan, Feb, Mar, and Apr
+  
+  # indicator for days &gt;= 95% sic
+  hiIce &lt;- ifelse(subice &gt;= 95,1,0)
+  
+  # rle (run length encoding) function to summarize runs in ice indicator variable
+  temp.data &lt;- rle(hiIce) # NB rle function output is 2 lists: &quot;values&quot; with value (in this case, 1 or 0) in the run, and &quot;length&quot; with length of the run
+  
+  # convert zeros in run values with a 1 on each side of them to 1 to include one-day breaks in the run, as per Flint et al. 2016
+  temp.data$values[temp.data$values == 0 &amp; temp.data$lengths == 1] &lt;- 1 # if a run of zeros has a length of 1, change it from zero to 1
+  
+  # convert this modified run length data set back to a data set of runs, but with single zeros within runs of 1 converted to 1&#39;s
+  y &lt;- inverse.rle(temp.data) 
+  
+  # re-apply rle function to summarize new runs that were modified to include breaks of 1 zero
+  final.runs &lt;- rle(y)
+  
+  high.ice &lt;- data.frame(unclass(final.runs)) # convert rle output to data frame with 2 columns (values, lengths)
+  high.ice &lt;- subset(high.ice, values == 1) # select only runs of 1&#39;s (remove runs of 0, where 0 = days &lt; 95% ice cover)
+  high.ice &lt;- subset(high.ice, lengths &gt; 1) # select runs of 1&#39;s longer than 1 day
+  sub.I &lt;- high.ice$lengths*log(high.ice$lengths) # calculate subcomponent of the ice index, where I = sum(D*ln(D)), where D = run of 1&#39;s as defined in Flint et al. 2016
+  
+  I &lt;- sum(sub.I) # sum the subcomponents of I to get I for the year
+  #print(I)
+  
+}
+
+# call function for each year with lapply
+ws.out.ice &lt;- lapply(year.file$year,heavy.ice)
+# unlist
+ws_index &lt;- unlist(ws.out.ice)
+# bind with year
+ws_index &lt;- cbind(year.file, ws_index)
+# plot ws_index
+ggplot(ws_index, aes(year, ws_index))+
+  geom_line()</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/calc_index-1.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 12. Calc heavy sic index for WINTER: winter_index ####
+# function to calcuate high ice index for each year of data
+heavy.ice &lt;- function(YR){
+  
+  # subset year during which to summarize heavy ice
+  year.one &lt;- subset(winter_sic_core, year_winter==YR)
+  #print(YR)
+  subice &lt;- year.one$sic_min4 # sensor data on ice concentration
+  #table(ice$month) #ice data are from Nov, Dec, Jan, Feb, Mar
+  
+  # indicator for days &gt;= 95%
+  hiIce &lt;- ifelse(subice &gt;= 95,1,0)
+  
+  # rle function to summarize runs in ice indicator variable
+  temp.data &lt;- rle(hiIce) # NB rle function output is 2 lists: &quot;values&quot; with value (in this case, 1 or 0) in the run, and &quot;length&quot; with length of the run
+  
+  # convert zeros with a 1 on each side to 1 to include one-day breaks in the run, as per Flint et al. 2016
+  temp.data$values[temp.data$values==0 &amp; temp.data$lengths==1] &lt;- 1
+  
+  # convert this modified run length data set back to a data set of runs, but with single zeros within runs of 1 converted to 1&#39;s
+  y &lt;- inverse.rle(temp.data)
+  
+  # re-apply rle function to summarize new runs that were modified to include breaks of 1 zero
+  final.runs &lt;- rle(y)
+  
+  high.ice &lt;- data.frame(unclass(final.runs)) # convert rle output to dataframe with 2 columns (values, lengths)
+  high.ice &lt;- subset(high.ice, values==1) # select only runs of 1&#39;s (remove runs of 0, where 0=days &lt; 95% ice cover)
+  high.ice &lt;- subset(high.ice, lengths &gt; 1) # select runs of 1&#39;s longer than 1 day
+  sub.I &lt;- high.ice$lengths*log(high.ice$lengths) # calculate subcomponent of the ice index, where I=sum(D*ln(D)), where D=run of 1&#39;s as defined in Flint et al. 2016
+  
+  I &lt;- sum(sub.I) # sum the subcomponents of I to get I for the year
+  #print(I)
+  
+}
+
+# call function for each year with lapply
+winter.out.ice &lt;- lapply(year.file$year,heavy.ice)
+# unlist
+winter_index &lt;- unlist(winter.out.ice)
+# bind with year
+winter_index &lt;- cbind(year.file, winter_index)
+# plot winter_index
+ggplot(winter_index, aes(year, winter_index))+
+  geom_line()</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/calc_index-2.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<pre class="r"><code># 13. Calc heavy sic index for spring: spring_index #####
+heavy.ice &lt;- function(YR){
+  
+  # subset year during which to summarize heavy ice
+  year.one &lt;- subset(spring_sic_core, year_winter==YR)
+  #print(YR)
+  subice &lt;- year.one$sic_min4 # sensor data on ice concentration
+  #table(ice$month) #ice data are from Apr
+  
+  # indicator for days &gt;= 95%
+  hiIce &lt;- ifelse(subice &gt;= 95,1,0)
+  
+  # rle function to summarize runs in ice indicator variable
+  temp.data&lt;-rle(hiIce) # NB rle function output is 2 lists: &quot;values&quot; with value (in this case, 1 or 0) in the run, and &quot;length&quot; with length of the run
+  
+  # convert zeros with a 1 on each side to 1 to include one-day breaks in the run, as per Flint et al. 2016
+  temp.data$values[temp.data$values==0 &amp; temp.data$lengths==1] &lt;- 1
+  
+  # convert this modified run length data set back to a data set of runs, but with single zeros within runs of 1 converted to 1&#39;s
+  y &lt;- inverse.rle(temp.data)
+  
+  # re-apply rle function to summarize new runs that were modified to include breaks of 1 zero
+  final.runs &lt;- rle(y)
+  
+  high.ice &lt;- data.frame(unclass(final.runs)) # convert rle output to data frame with 2 columns (values, lengths)
+  high.ice &lt;- subset(high.ice, values==1) # select only runs of 1&#39;s (remove runs of 0, where 0=days &lt; 95% ice cover)
+  high.ice &lt;- subset(high.ice, lengths &gt; 1) # select runs of 1&#39;s longer than 1 day
+  sub.I &lt;- high.ice$lengths*log(high.ice$lengths) # calculate subcomponent of the ice index, where I=sum(D*ln(D)), where D=run of 1&#39;s as defined in Flint et al. 2016
+  
+  I &lt;- sum(sub.I) # sum the subcomponents of I to get I for the year
+  #print(I)
+  
+}
+
+# call function for each year with lapply
+spring.out.ice &lt;- lapply(year.file$year,heavy.ice)
+# unlist
+spring_index &lt;- unlist(spring.out.ice)
+# bind with year
+spring_index &lt;- cbind(year.file, spring_index)
+# plot spring_index
+ggplot(spring_index, aes(year, spring_index))+
+  geom_line()</code></pre>
+<p><img src="figure/04_summarize_daily_min_bs3_sic.Rmd/calc_index-3.png" alt="" width="672" style="display: block; margin: auto;" /></p>
+<p>The sea ice summary variables are then compiled and saved as file:
+sea_ice_vars_1992-[most recent year].csv.</p>
+<p>The sea variables in that file include: -year_winter: year index by
+the start of winter, Nov. For example, year_winter 2025 = 01 Nov 2025 to
+30 Apr 2026 -ws_count_sic_ge95: count of days with &gt;=95% cover in the
+ice area 01 Nov to 30 Apr -winter_count_sic_ge95: count of days with
+&gt;=95% cover in the ice area 01 Nov to 31 March
+-spring_count_sic_ge95: count of days with &gt;=95% cover in the ice
+area 01-30 April -ws_count_sic_le15: count of days with &lt; 15% cover
+in the ice area 01 Nov to 30 Apr -winter_count_sic_le15: count of days
+with &lt; 15% cover in the ice area 01 Nov to 31 March
+-spring_count_sic_le15: count of days with &lt; 15% cover in the ice
+area 01 Nov to 01-30 April -ws_index: ice severity index (Flint et
+al. 2016) in the ice area 01 Nov to 30 Apr -winter_index: ice severity
+index (Flint et al. 2016) in the ice area 01 Nov to 31 March
+-spring_index: ice severity index (Flint et al. 2016) in the ice area
+01-30 April</p>
+<p>Data summarized in this file correspond to the time-series of
+mark-resight data from Spectacled Eiders at Kigigak Island:
+1992-2025.</p>
+<pre class="r"><code>  # 14. Compile variables into data frame and save ####
+sea_ice_vars_1992_2025&lt;-cbind(ws_hi,
+                              winter_hi[2],
+                              spring_hi[2],
+                              ws_lo[2],
+                              winter_lo[2],
+                              spring_lo[2],
+                              ws_index[2],
+                              winter_index[2],
+                              spring_index[2])
+
+# 15. Save compiled sic variables as csv ####
+write.csv(sea_ice_vars_1992_2025, &quot;output/sic_beringSea_4pixels/sea_ice_vars_1995_2025.csv&quot;, row.names = FALSE)</code></pre>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.5.3 (2026-03-11 ucrt)
+Platform: x86_64-w64-mingw32/x64
+Running under: Windows 11 x64 (build 26100)
+
+Matrix products: default
+  LAPACK version 3.12.1
+
+locale:
+[1] LC_COLLATE=English_United States.utf8 
+[2] LC_CTYPE=English_United States.utf8   
+[3] LC_MONETARY=English_United States.utf8
+[4] LC_NUMERIC=C                          
+[5] LC_TIME=English_United States.utf8    
+
+time zone: America/Anchorage
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] imager_1.0.8    magrittr_2.0.4  ggplot2_4.0.2   workflowr_1.7.2
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     tiff_0.1-12        jpeg_0.1-11       
+ [5] stringi_1.8.7      digest_0.6.39      evaluate_1.0.5     grid_4.5.3        
+ [9] RColorBrewer_1.1-3 fastmap_1.2.0      rprojroot_2.1.1    jsonlite_2.0.0    
+[13] processx_3.8.6     whisker_0.4.1      ps_1.9.1           promises_1.5.0    
+[17] httr_1.4.8         purrr_1.2.1        scales_1.4.0       textshaping_1.0.5 
+[21] jquerylib_0.1.4    cli_3.6.5          rlang_1.1.7        withr_3.0.2       
+[25] cachem_1.1.0       yaml_2.3.12        otel_0.2.0         tools_4.5.3       
+[29] dplyr_1.2.0        httpuv_1.6.17      bmp_0.3.1          vctrs_0.7.2       
+[33] R6_2.6.1           png_0.1-9          lifecycle_1.0.5    git2r_0.36.2      
+[37] stringr_1.6.0      fs_2.0.1           ragg_1.5.2         pkgconfig_2.0.3   
+[41] callr_3.7.6        pillar_1.11.1      bslib_0.10.0       later_1.4.8       
+[45] gtable_0.3.6       glue_1.8.0         Rcpp_1.1.1         systemfonts_1.3.2 
+[49] xfun_0.57          tibble_3.3.1       tidyselect_1.2.1   rstudioapi_0.18.0 
+[53] knitr_1.51         readbitmap_0.1.5   farver_2.1.2       htmltools_0.5.9   
+[57] igraph_2.2.2       labeling_0.4.3     rmarkdown_2.31     compiler_4.5.3    
+[61] getPass_0.2-4      S7_0.2.1          </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
