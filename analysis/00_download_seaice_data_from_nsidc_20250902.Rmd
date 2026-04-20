@@ -16,7 +16,7 @@ library(fs) # directory operations which were causing problems when using the ba
 library(glue) # file name and URL creation incorporating referenced parts of dates
 ```
 # UPDATE March 2026
-The URL for downloading data cited below, https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0079.004/,  is no longer available when checked in March 2026.
+The URL for downloading data cited below, https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0079.004/,  was no longer available when checked in March 2026.
 
 Instead:
 
