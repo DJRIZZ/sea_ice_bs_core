@@ -1,5 +1,5 @@
 ---
-title: "Convert netDDF to geotifs"
+title: "Convert netCDF to geotifs"
 author: "D. Rizzolo"
 date: "`r Sys.Date()`"
 output: workflowr::wflow_html
