@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+<meta name="author" content="02_extract_specEider_winterIce_bootstrap_sic_geotif.Rmd" />
+
+<meta name="date" content="2026-10-28" />
+
+<title>Sea Ice Data: Extracting Spectacled Eider Winter Range Pixels</title>
+
+<script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
+<script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="site_libs/bootstrap-3.3.5/css/flatly.min.css" rel="stylesheet" />
+<script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="site_libs/jqueryui-1.13.2/jquery-ui.min.js"></script>
+<link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
+<script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
+<script src="site_libs/navigation-1.1/tabsets.js"></script>
+<script src="site_libs/navigation-1.1/codefolding.js"></script>
+<link href="site_libs/highlightjs-9.12.0/textmate.css" rel="stylesheet" />
+<script src="site_libs/highlightjs-9.12.0/highlight.js"></script>
+
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/main/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
+<style type="text/css">
+div.section {
+  padding-top: 12px;
+}
+</style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+details > summary > p:only-child {
+  display: inline;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+<style type="text/css">
+.dropdown-submenu {
+  position: relative;
+}
+.dropdown-submenu>.dropdown-menu {
+  top: 0;
+  left: 100%;
+  margin-top: -6px;
+  margin-left: -1px;
+  border-radius: 0 6px 6px 6px;
+}
+.dropdown-submenu:hover>.dropdown-menu {
+  display: block;
+}
+.dropdown-submenu>a:after {
+  display: block;
+  content: " ";
+  float: right;
+  width: 0;
+  height: 0;
+  border-color: transparent;
+  border-style: solid;
+  border-width: 5px 0 5px 5px;
+  border-left-color: #cccccc;
+  margin-top: 5px;
+  margin-right: -10px;
+}
+.dropdown-submenu:hover>a:after {
+  border-left-color: #adb5bd;
+}
+.dropdown-submenu.pull-left {
+  float: none;
+}
+.dropdown-submenu.pull-left>.dropdown-menu {
+  left: -100%;
+  margin-left: 10px;
+  border-radius: 6px 0 6px 6px;
+}
+</style>
+
+<script type="text/javascript">
+// manage active state of menu based on current page
+$(document).ready(function () {
+  // active menu anchor
+  href = window.location.pathname
+  href = href.substr(href.lastIndexOf('/') + 1)
+  if (href === "")
+    href = "index.html";
+  var menuAnchor = $('a[href="' + href + '"]');
+
+  // mark the anchor link active (and if it's in a dropdown, also mark that active)
+  var dropdown = menuAnchor.closest('li.dropdown');
+  if (window.bootstrap) { // Bootstrap 4+
+    menuAnchor.addClass('active');
+    dropdown.find('> .dropdown-toggle').addClass('active');
+  } else { // Bootstrap 3
+    menuAnchor.parent().addClass('active');
+    dropdown.addClass('active');
+  }
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
+});
+</script>
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before, .tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "\e259";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "\e258";
+  font-family: 'Glyphicons Halflings';
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+<style type="text/css">
+
+#TOC {
+  margin: 25px 0px 20px 0px;
+}
+@media (max-width: 768px) {
+#TOC {
+  position: relative;
+  width: 100%;
+}
+}
+
+@media print {
+.toc-content {
+  /* see https://github.com/w3c/csswg-drafts/issues/4434 */
+  float: right;
+}
+}
+
+.toc-content {
+  padding-left: 30px;
+  padding-right: 40px;
+}
+
+div.main-container {
+  max-width: 1200px;
+}
+
+div.tocify {
+  width: 20%;
+  max-width: 260px;
+  max-height: 85%;
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+  div.tocify {
+    width: 25%;
+  }
+}
+
+@media (max-width: 767px) {
+  div.tocify {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.tocify ul, .tocify li {
+  line-height: 20px;
+}
+
+.tocify-subheader .tocify-item {
+  font-size: 0.90em;
+}
+
+.tocify .list-group-item {
+  border-radius: 0px;
+}
+
+.tocify-subheader {
+  display: inline;
+}
+.tocify-subheader .tocify-item {
+  font-size: 0.95em;
+}
+
+</style>
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+<!-- setup 3col/9col grid for toc_float and main content  -->
+<div class="row">
+<div class="col-xs-12 col-sm-4 col-md-3">
+<div id="TOC" class="tocify">
+</div>
+</div>
+
+<div class="toc-content col-xs-12 col-sm-8 col-md-9">
+
+
+
+
+<div class="navbar navbar-default  navbar-fixed-top" role="navigation">
+  <div class="container">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-bs-toggle="collapse" data-target="#navbar" data-bs-target="#navbar">
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="index.html">sea_ice_bs_core</a>
+    </div>
+    <div id="navbar" class="navbar-collapse collapse">
+      <ul class="nav navbar-nav">
+        <li>
+  <a href="index.html">Home</a>
+</li>
+<li>
+  <a href="00_download_seaice_data_from_nsidc_20250902.Rmd">NSIDC Data Download</a>
+</li>
+<li>
+  <a href="about.html">About</a>
+</li>
+<li>
+  <a href="license.html">License</a>
+</li>
+      </ul>
+      <ul class="nav navbar-nav navbar-right">
+        
+      </ul>
+    </div><!--/.nav-collapse -->
+  </div><!--/.container -->
+</div><!--/.navbar -->
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">Sea Ice Data: Extracting Spectacled Eider
+Winter Range Pixels</h1>
+<h4 class="author">02_extract_specEider_winterIce_bootstrap_sic_geotif.Rmd</h4>
+<h4 class="date">2026-10-28</h4>
+
+</div>
+
+
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span>
+workflowr <span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span>
+</button>
+</p>
+<div id="workflowr-report" class="collapse">
+<ul class="nav nav-tabs">
+<li class="active">
+<a data-toggle="tab" href="#summary">Summary</a>
+</li>
+<li>
+<a data-toggle="tab" href="#checks"> Checks <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+</a>
+</li>
+<li>
+<a data-toggle="tab" href="#versions">Past versions</a>
+</li>
+</ul>
+<div class="tab-content">
+<div id="summary" class="tab-pane fade in active">
+<p>
+<strong>Last updated:</strong> 2026-10-28
+</p>
+<p>
+<strong>Checks:</strong> <span
+class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7
+<span class="glyphicon glyphicon-exclamation-sign text-danger"
+aria-hidden="true"></span> 0
+</p>
+<p>
+<strong>Knit directory:</strong> <code>sea_ice_bs_core/</code> <span
+class="glyphicon glyphicon-question-sign" aria-hidden="true"
+title="This is the local directory in which the code in this file was executed.">
+</span>
+</p>
+<p>
+This reproducible <a href="https://rmarkdown.rstudio.com">R Markdown</a>
+analysis was created with <a
+  href="https://github.com/workflowr/workflowr">workflowr</a> (version
+1.7.2). The <em>Checks</em> tab describes the reproducibility checks
+that were applied when the results were created. The <em>Past
+versions</em> tab lists the development history.
+</p>
+<hr>
+</div>
+<div id="checks" class="tab-pane fade">
+<div id="workflowr-checks" class="panel-group">
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date
+</a>
+</p>
+</div>
+<div id="strongRMarkdownfilestronguptodate"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great! Since the R Markdown file has been committed to the Git
+repository, you know the exact version of the code that produced these
+results.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongEnvironmentstrongempty">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Environment:</strong> empty </a>
+</p>
+</div>
+<div id="strongEnvironmentstrongempty" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! The global environment was empty. Objects defined in the
+global environment can affect the analysis in your R Markdown file in
+unknown ways. For reproduciblity it’s best to always run the code in an
+empty environment.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSeedstrongcodesetseed20250904code">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Seed:</strong>
+<code>set.seed(20250904)</code> </a>
+</p>
+</div>
+<div id="strongSeedstrongcodesetseed20250904code"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>The command <code>set.seed(20250904)</code> was run prior to running
+the code in the R Markdown file. Setting a seed ensures that any results
+that rely on randomness, e.g. subsampling or permutations, are
+reproducible.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongSessioninformationstrongrecorded">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Session information:</strong>
+recorded </a>
+</p>
+</div>
+<div id="strongSessioninformationstrongrecorded"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Recording the operating system, R version, and package
+versions is critical for reproducibility.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongCachestrongnone">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Cache:</strong> none </a>
+</p>
+</div>
+<div id="strongCachestrongnone" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Nice! There were no cached chunks for this analysis, so you can be
+confident that you successfully produced the results during this
+run.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongFilepathsstrongrelative">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>File paths:</strong> relative </a>
+</p>
+</div>
+<div id="strongFilepathsstrongrelative" class="panel-collapse collapse">
+<div class="panel-body">
+<p>Great job! Using relative paths to the files within your workflowr
+project makes it easier to run your code on other machines.</p>
+</div>
+</div>
+</div>
+<div class="panel panel-default">
+<div class="panel-heading">
+<p class="panel-title">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreecde6de309f73bcdf001b96c24d32d1081d203fc5targetblankcde6de3a">
+<span class="glyphicon glyphicon-ok text-success"
+aria-hidden="true"></span> <strong>Repository version:</strong>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/cde6de309f73bcdf001b96c24d32d1081d203fc5" target="_blank">cde6de3</a>
+</a>
+</p>
+</div>
+<div
+id="strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreecde6de309f73bcdf001b96c24d32d1081d203fc5targetblankcde6de3a"
+class="panel-collapse collapse">
+<div class="panel-body">
+<p>
+Great! You are using Git for version control. Tracking code development
+and connecting the code version to the results is critical for
+reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/cde6de309f73bcdf001b96c24d32d1081d203fc5" target="_blank">cde6de3</a>.
+See the <em>Past versions</em> tab to see a history of the changes made
+to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for
+the analysis have been committed to Git prior to generating the results
+(you can use <code>wflow_publish</code> or
+<code>wflow_git_commit</code>). workflowr only checks the R Markdown
+file, but you know if there are other scripts or data files that it
+depends on. Below is the status of the Git repository when the results
+were generated:
+</p>
+<pre><code>
+Ignored files:
+    Ignored:    .Rhistory
+    Ignored:    .Rproj.user/
+    Ignored:    analysis/archive/
+    Ignored:    analysis/figure/
+    Ignored:    code/.Rhistory
+    Ignored:    code/archive/
+    Ignored:    code/sic_nsidc_download_summarize/archive/
+    Ignored:    data/sourced_data/bremen_daily_sic/
+    Ignored:    data/sourced_data/nsidc_sic_v3/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_1979-1991/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_1992-2025/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_temp/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/NSIDC-0079_4-19911191-19920430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19791101_19920430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921101_19921105/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_19921105/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231_temp/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20241101_20250430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20260101_20260430/
+    Ignored:    library/
+    Ignored:    output/archive/
+    Ignored:    temp/
+
+Untracked files:
+    Untracked:  User notice_ SSMIS data processing to end by 30 June 2025 _ National Snow and Ice Data Center.pdf
+    Untracked:  analysis/00_download_seaice_data_from_nsidc_Rmd.txt
+    Untracked:  analysis/01_convert_daily_netcdf_bootstrap_to_geotif_Rmd.txt
+    Untracked:  analysis/02_extract_specEider_winterIce_bootstrap_sic_geotif_Rmd.txt
+    Untracked:  analysis/03_summarize_daily_min_bs3_sic.Rmd
+    Untracked:  analysis/03_summarize_daily_min_bs3_sic_Rmd.txt
+    Untracked:  analysis/README_updated_sea_ice_nsidc_download_20260407.txt
+    Untracked:  code/estimate_pearson_correlation_bt_iceDays_seaIceExtent.R
+    Untracked:  code/ice_area_daily_nsidc.R
+    Untracked:  code/ice_extent_daily_nsidc.R
+    Untracked:  code/plot_iceDays_iceExent_1992-2024.R
+    Untracked:  code/render_rmarkdowns_to_html_output.R
+    Untracked:  code/sic_nsidc_download_summarize/01_convert_daily_netcdf_bootstrap_to_geotif.txt
+    Untracked:  code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.html
+    Untracked:  code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.rmd
+    Untracked:  code/sic_nsidc_download_summarize/02_extract_specEider_winterice_bootstrap_sic_geotif.txt
+    Untracked:  code/sic_nsidc_download_summarize/03_summarize_daily_min4_bs3_append_to_allYears_20250902.R
+    Untracked:  code/sic_nsidc_download_summarize/03_summarize_daily_min_bs3_sic.txt
+    Untracked:  code/sic_nsidc_download_summarize/04_calc_daily_means_pixels_1to4_20250903.R
+    Untracked:  code/sic_nsidc_download_summarize/README_updated_sea_ice_nsidc_download_20260407.txt
+    Untracked:  code/sic_nsidc_download_summarize/rbind_sic_bootstrapv4_16pixles_timeSeries_recentYear.R
+    Untracked:  code/summarize_iceDays_Christie_et_al_2018_Dryad_data.R
+    Untracked:  create_mdJSONdictio.R
+    Untracked:  data/core_area_petersen_douglas_2004/
+    Untracked:  data/sourced_data/bering_sea_summary_nsidc/
+    Untracked:  incomming/
+    Untracked:  metadata.json
+    Untracked:  metadata/AK_DMPTemplate_v1.3.docm
+    Untracked:  metadata/dmp_sea_ice_bs_core_20261026.docm
+    Untracked:  metadata/mdJSONdictio_Dictionary_Template_v2 - Copy.xlsx
+    Untracked:  metadata/sea_ice_vars_1979_2024_mdJSONdictio.json
+    Untracked:  metadata/sea_ice_vars_1979_2024_mdJSONdictio.xlsx
+    Untracked:  output/00_download_seaice_data_from_nsidc.html
+    Untracked:  output/figs/just_core.jpg
+    Untracked:  output/figs/plot_count_days_ge95pct_sic_1979-2024.png
+    Untracked:  output/figs/plot_count_days_ge95pct_sic_1992-2024.png
+    Untracked:  output/figs/plot_iceDays_iceExtent_2026-06-29.jpg
+    Untracked:  output/figs/plot_iceDays_iceExtent_2026-07-28.jpg
+    Untracked:  output/sic_beringSea_16pixels/1979_sic_bootstrapv4_16pixels_01Nov-30Apr.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1979-1991.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-1979.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_2024-2025.csv
+    Untracked:  output/sic_beringSea_4pixels/compare_bs0_bs3_bs4_sic_min4_output_20260420.xlsx
+    Untracked:  output/sic_beringSea_4pixels/compare_christie_to_v4_daily_4pixel_min_sic_1992-2024.csv
+    Untracked:  output/sic_beringSea_4pixels/daily_4pixel_min_sic_1992-2024.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1979_2024.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1992_2024.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1992_2025.csv
+    Untracked:  output/summary_ice_area_daily_bering_sea_1992-2025.csv
+    Untracked:  output/summary_ice_extent_daily_bering_sea_1992-2025.csv
+
+Unstaged changes:
+    Modified:   .gitignore
+    Deleted:    analysis/00_download_seaice_data_from_nsidc_20250902.Rmd
+    Deleted:    analysis/04_summarize_daily_min_bs3_sic.Rmd
+    Modified:   code/create_workflowr_prj.R
+    Modified:   code/sic_nsidc_download_summarize/00_download_seaice_data_from_nsidc_20250903.R
+    Modified:   code/sic_nsidc_download_summarize/01_convert_daily_netcdf_bootstrap_to_geotif_20250902.R
+    Modified:   code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.R
+    Deleted:    code/sic_nsidc_download_summarize/03_calc_daily_means_pixels_1to4_20250903.R
+    Deleted:    code/sic_nsidc_download_summarize/04_summarize_daily_min4_bs3_append_to_allYears_20250902.R
+    Modified:   cookies.txt
+    Modified:   data/data_christie_et_al_2018/spei_winter_ice.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_area_nsidc/bs_ice_area_long.csv
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_area_nsidc/daily_si_area_nsidc_wide_20241010.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_extent_nsidc/N_Sea_Ice_Index_Regional_Daily_Data_G02135_v3.0.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_extent_nsidc/daily_si_ext_nsidc_wide_20241010.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_extent_nsidc/read_me_daily_si_extent_nsidc.txt
+    Modified:   output/figs/plot_count_days_ge95pct_sic_1992-2023.png
+
+</code></pre>
+<p>
+Note that any generated files, e.g. HTML, png, CSS, etc., are not
+included in this status report because it is ok for generated content to
+have uncommitted changes.
+</p>
+</div>
+</div>
+</div>
+</div>
+<hr>
+</div>
+<div id="versions" class="tab-pane fade">
+<p>
+These are the previous versions of the repository in which changes were
+made to the R Markdown
+(<code>analysis/02_extract_specEider_winterIce_bootstrap_sic_geotif.Rmd</code>)
+and HTML
+(<code>docs/02_extract_specEider_winterIce_bootstrap_sic_geotif.html</code>)
+files. If you’ve configured a remote Git repository (see
+<code>?wflow_git_remote</code>), click on the hyperlinks in the table
+below to view the files as they were in that past version.
+</p>
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+File
+</th>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+<th>
+Message
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/blob/cde6de309f73bcdf001b96c24d32d1081d203fc5/analysis/02_extract_specEider_winterIce_bootstrap_sic_geotif.Rmd" target="_blank">cde6de3</a>
+</td>
+<td>
+DJRIZZ
+</td>
+<td>
+2026-10-28
+</td>
+<td>
+commit prior to RDR submission
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr>
+</div>
+</div>
+</div>
+<div id="sea-ice-data-extraction" class="section level2">
+<h2>Sea Ice Data: Extraction</h2>
+<p>This script extracts sea ice concentration (sic) data from the 16
+pixels (each 25 km x 25 km) in the northern Bering Sea identified in
+Petersen and Douglas (2004) as spectacled eider winter range, based on
+satellite transmitter locations from the 1990s. These 16 pixels are used
+as an index of sea ice conditions across the broader area of the Bering
+Sea used by spectacled eiders, following Petersen and Douglas (2004),
+Flint et al. (2016), Christie et al. (2018), Dunham et al. (2021), and
+Friendly et al. (2025).</p>
+<p>The output is a daily time series of sic (percent cover, 0 to 100) at
+each of the 16 pixels, for each winter (01 Nov to 30 Apr) day.</p>
+<p>This script was adapted from code posted by A. Fischbach, modified by
+G. Durner in 2020, and updated by D. Rizzolo in 2020.</p>
+<p>Data are SMMR and SSM/I Passive Microwave SIC from the Bootstrap
+Algorithm, version 4.0 (released November 2023):</p>
+<p>This script processes one winter of data (most recently available)
+and appends that new data to the existing data set spanning all winters
+processed to date.</p>
+</div>
+<div id="work-flow" class="section level2">
+<h2>Work flow</h2>
+<p>This is the third script in a four-script workflow. The raw data are
+downloaded here with this
+<code>00_download_seaice_data_from_nsidc.Rmd</code> script, converted
+from the native netCDF format to GeoTIFFs with
+<code>01_convert_netcdf_to_geotif.Rmd</code>, then extracted from the
+pixels of interest using the current
+<code>02_extract_specEider_winterice_bootstrap_sic_geotif.Rmd</code>
+script, and finally summarized into annual sea ice variables with
+<code>03_summarize_daily_min_bs3_sic.Rmd</code>.</p>
+<div id="inputs" class="section level3">
+<h3>Inputs</h3>
+<ul>
+<li><strong>Pixel coordinate reference file</strong>:
+<code>library/specEider_winter_pixel_samples_xy_geo_SAVE.csv</code> -
+longitude/latitude (WGS84) coordinates of the 16 spectacled eider
+winter-range pixels.</li>
+<li><strong>Input directory of daily GeoTIFFs</strong>:
+<code>data/sourced_data/nsidc_sic_v4/sic_geotif/</code> (the same
+directory produced as output by
+<code>01_convert_netcdf_to_geotif.Rmd</code>) - one file per day, named
+<code>NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif</code>. The file
+list is filtered to <code>.tif</code> files only, to avoid picking up
+any sidecar/auxiliary files that may be written alongside the GeoTIFFs.
+The date and month are parsed from fixed character positions within this
+filename (positions 27-34 for the full date, 31-32 for the month), so
+input files must follow this exact naming convention and length for
+those extractions to return the correct characters.</li>
+<li><strong>Existing cumulative output file</strong> (read in during the
+final append step):
+<code>output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv</code>
+- the previously compiled multi-year record that this script appends
+to.</li>
+</ul>
+<p>Spatial data references used in this script:</p>
+<ul>
+<li>EPSG:3411 - NSIDC Sea Ice Polar Stereographic North (the projection
+of the sea ice GeoTIFFs; assigned during conversion in
+<code>01_convert_netcdf_to_geotif.Rmd</code>)</li>
+<li>EPSG:4326 - WGS 84 Geographic (the projection of the pixel
+coordinate reference file)</li>
+</ul>
+<pre class="r"><code># spatial data references used here:
+#* EPSG:3411: NSIDC Sea Ice Polar Stereographic North
+#* EPSG:4326: WGS 84 Geographic
+
+# make Sea Ice Concentration (SIC) grid cell reference coordinates spatial with st_as_sf from package sf and reproject to same CRS as sea ice data
+eider16.geo &lt;- read.csv(&quot;library/specEider_winter_pixel_samples_xy_geo_SAVE.csv&quot;) # Read CSV into a regular data frame
+eider16.sf &lt;- st_as_sf(eider16.geo, coords = c(&quot;lon&quot;, &quot;lat&quot;), crs = 4326) # Convert to an sf object with WGS84 coordinates (EPSG:4326)
+eider16.ps &lt;- st_transform(eider16.sf, crs = 3411) # Reproject to NSIDC Sea Ice Polar Stereographic North (EPSG:3411)</code></pre>
+</div>
+</div>
+<div id="extraction" class="section level2">
+<h2>Extraction</h2>
+<p>For each daily GeoTIFF in the input directory, this script loads the
+raster, extracts the sic value at each of the 16 reprojected pixel
+locations, and appends the result (with date, projected x/y coordinates,
+and original lon/lat) to a running list of daily data frames. Only files
+whose parsed month falls within the winter processing window are
+extracted; all others are skipped. Any file that fails to load or
+extract is logged to <code>error_log</code> and skipped, rather than
+stopping the whole run.</p>
+<pre class="r"><code># get a list of the geotif files converted from NetCDF in 01_convert_netcdf_to_geotif.Rmd
+geotif_dir &lt;- path_abs(&quot;data/sourced_data/nsidc_sic_v4/sic_geotif/&quot;)
+dir_exists(geotif_dir)</code></pre>
+<pre><code>C:/Users/drizzolo/OneDrive - DOI/Desktop/Documents/projects/sea_ice_bs_core/data/sourced_data/nsidc_sic_v4/sic_geotif 
+                                                                                                                 TRUE </code></pre>
+<pre class="r"><code>tif.list &lt;- as.list(list.files(path = geotif_dir, pattern = &quot;\\.tif$&quot;))
+eider_list &lt;- list() # Initialize list to collect daily data frames</code></pre>
+<pre class="r"><code># code applied to all version 4 data from period of spectacled eider mark-resight project: 01 Nov 1992 - 31 Dec 2024 (most recent available data as of Sept 2025)
+# subsequently, apply to each newly released year of data
+
+# create progress bar
+pb &lt;- progress_bar$new(
+  format = &quot;  Converting [:bar] :percent | :current/:total | :filename&quot;, # pb layout
+  total = length(tif.list), # total files
+  clear = FALSE, # keep bar visible until loop finishes
+  width = 60 # displayed bar width
+)
+
+error_log &lt;- list() # collect any files that fail to load/extract, with the associated error message
+
+# loop through directory of geotif files
+for (f in tif.list) {
+  pb$tick(tokens = list(filename = f)) # progress bar by 1 step each file
+  month &lt;- as.numeric(substr(f, 31, 32))  # assign month from file name (example: &quot;NSIDC0079_SEAICE_PS_N25km_20211114_v4.0.tif&quot;)
+  # Process only Nov–Apr
+  if (month &gt;= 11 || month &lt;= 4) {
+    tryCatch({
+      # load raster using terra
+      filename &lt;- file.path(geotif_dir, f) # assign file name with path
+      rr &lt;- terra::rast(filename)
+      # extract sea ice values at point locations for 16 eider pixels of interest
+      values &lt;- terra::extract(rr, vect(eider16.ps))[,2]  # second column is the ice value
+      # get coordinates from sf object
+      coords &lt;- sf::st_coordinates(eider16.ps)
+      colnames(coords) &lt;- c(&quot;x&quot;, &quot;y&quot;) # rename columns upper- to lowercase
+      # create data frame
+      eider16p &lt;- eider16.ps %&gt;%
+        st_drop_geometry() %&gt;% # remove the geometry column of the sf object
+        # add column for:
+        mutate(bs_sic_prop = values, # sea ice concentration 
+               sicDate = substr(f, 27, 34), # extract date from file name, positions 3 to 10
+               x = coords[, &quot;x&quot;], # EPSG 3411 x values
+               y = coords[, &quot;y&quot;]
+               ) %&gt;% # EPSG 3411 y values
+        # join the original lat/lon columns from eider16.geo by row index
+        dplyr::bind_cols(
+          eider16.geo %&gt;% dplyr::select(lon, lat)
+        )
+      # append to list
+      eider_list[[length(eider_list) + 1]] &lt;- eider16p # append daily values
+    }, error = function(e) {
+      error_log[[length(error_log) + 1]] &lt;&lt;- list(file = f, message = conditionMessage(e))
+    })
+  }
+}
+
+if (length(error_log) &gt; 0) {
+  cat(glue::glue(&quot;\n{length(error_log)} file(s) failed to extract:\n&quot;))
+  for (err in error_log) {
+    cat(glue::glue(&quot;  {err$file}: {err$message}\n&quot;))
+  }
+} else {
+  cat(glue::glue(&quot;\nAll {length(eider_list)} file(s) extracted without errors.\n&quot;))
+}</code></pre>
+<pre><code>All 1592 file(s) extracted without errors.</code></pre>
+</div>
+<div id="combine-and-inspect" class="section level2">
+<h2>Combine and inspect</h2>
+<pre class="r"><code># call bind rows to combine all daily data frames into data frame eider16p
+eider16p &lt;- dplyr::bind_rows(eider_list)
+
+# output is eider16p, take a look
+str(eider16p)</code></pre>
+<pre><code>&#39;data.frame&#39;:   25472 obs. of  7 variables:
+ $ pixel      : int  1 2 3 4 5 6 7 8 9 10 ...
+ $ bs_sic_prop: num  0 0 0 0 0 0 0 0 0 0 ...
+ $ sicDate    : chr  &quot;19791102&quot; &quot;19791102&quot; &quot;19791102&quot; &quot;19791102&quot; ...
+ $ x          : num  -2411473 -2387277 -2411473 -2387277 -2410667 ...
+ $ y          : num  1887832 1887832 1862022 1860409 1837019 ...
+ $ lon        : num  -173 -173 -173 -173 -172 ...
+ $ lat        : num  62.3 62.4 62.4 62.6 62.5 ...</code></pre>
+<pre class="r"><code>summary(eider16p$bs_sic_prop)</code></pre>
+<pre><code>   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+ 0.0000  0.0000  0.9400  0.6605  1.0000  1.0000 </code></pre>
+</div>
+<div id="save-output" class="section level2">
+<h2>Save output</h2>
+<p>The <code>write.csv()</code> function below names the single-winter
+output file deriving the year from the first file in
+<code>tif.list</code> and names the file accordingly.</p>
+<pre class="r"><code># save reprocessed time series
+year&lt;- as.numeric(substr(tif.list[1], 27, 30))
+write.csv(eider16p, paste(&quot;output/sic_beringSea_16pixels/&quot;, year, &quot;_sic_bootstrapv4_16pixels_01Nov-30Apr.csv&quot;, sep=&quot;&quot;), row.names = FALSE)                   </code></pre>
+</div>
+<div id="append-to-full-multi-year-data-set" class="section level2">
+<h2>Append to full multi-year data set</h2>
+<p>The newly processed winter (<code>eider16p</code>) is appended to the
+existing cumulative record covering 1992-2024, and the combined result
+is saved as a new file named with the updated ending year.</p>
+<pre class="r"><code># append it to full data set
+# load full data set
+all_previous &lt;- read.csv(&quot;output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv&quot;)
+# rbind most recent data to full data set
+bind &lt;- rbind.data.frame(all_previous, eider16p)
+
+# check and remove duplicate records
+#any(duplicated(bind))
+#bind[duplicated(bind), ]
+#df_unique &lt;- bind[!duplicated(bind), ]
+#bind &lt;- df_unique
+
+# save it
+write.csv(bind, paste(&quot;output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-&quot;, year, &quot;.csv&quot;, sep=&quot;&quot;), row.names = FALSE)</code></pre>
+</div>
+<div id="outputs" class="section level2">
+<h2>Outputs</h2>
+<p>Running this script produces the following:</p>
+<ul>
+<li><strong><code>eider16p</code></strong>: an in-session data frame
+with one row per pixel per successfully processed day, including
+<code>lon</code>, <code>lat</code>, projected
+<code>x</code>/<code>y</code> coordinates (EPSG:3411),
+<code>bs_sic_prop</code> (sea ice concentration, percent), and
+<code>sicDate</code> (date parsed from the source filename).</li>
+<li><strong><code>error_log</code></strong>: a list of any GeoTIFFs
+within the winter processing window that failed to load or extract, each
+with the associated error message, so failures can be investigated
+without re-running the entire batch.</li>
+<li><strong>A single-winter CSV</strong>,
+<code>output/sic_beringSea_16pixels/[year]_sic_bootstrapv4_16pixels_01Nov-30Apr.csv</code>.</li>
+<li><strong><code>all_previous</code></strong>: the previously saved
+cumulative multi-year record, read back in for the append step.</li>
+<li><strong><code>bind</code></strong>: the combined data frame
+(<code>all_previous</code> + <code>eider16p</code>), optionally
+de-duplicated if the commented-out duplicate-check lines are
+enabled.</li>
+<li><strong>An updated cumulative CSV</strong>:
+<code>output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-[year].csv</code>,
+replacing the prior cumulative file with one extended through the newly
+processed winter.</li>
+</ul>
+</div>
+<div id="references" class="section level2">
+<h2>References</h2>
+<p>Christie, K. S., Hollmen, T. E., Flint, P., &amp; Douglas, D. (2018).
+Non-linear effect of sea ice: Spectacled Eider survival declines at both
+extremes of the ice spectrum. Ecology and Evolution, 8(23), 11808–11818.
+<a href="https://doi.org/10.1002/ece3.4637"
+class="uri">https://doi.org/10.1002/ece3.4637</a></p>
+<p>Comiso, J. C. (2023). Bootstrap Sea Ice Concentrations from Nimbus-7
+SMMR and DMSP SSM/I-SSMIS (NSIDC-0079, Version 4). [Data set]. NASA
+National Snow and Ice Data Center Distributed Active Archive Center. <a
+href="https://doi.org/10.5067/7Q8HCCWS4I0R"
+class="uri">https://doi.org/10.5067/7Q8HCCWS4I0R</a> (if you need the
+exact landing-page link instead, let me know)</p>
+<p>Dunham, K. D., Tucker, A. M., Koons, D. N., Abebe, A., Dobson, F. S.,
+&amp; Grand, J. B. (2021). Demographic responses to climate change in a
+threatened Arctic species. Ecology and Evolution, 11(15), 10627–10643.
+<a href="https://doi.org/10.1002/ece3.7873"
+class="uri">https://doi.org/10.1002/ece3.7873</a></p>
+<p>Flint, P. L., Grand, J. B., &amp; Petersen, M. R. (2016). Effects of
+lead exposure, environmental conditions, and metapopulation processes on
+population dynamics of Spectacled Eiders. North American Fauna, 81,
+1–41. (No DOI provided; can add if you want one located.)</p>
+<p>Friendly, R. J., Lindberg, M. S., &amp; Rizzolo, D. J. (2025).
+Carry-over effects of winter conditions on nesting Somateria fischeri
+(Spectacled Eider), a sea ice-associated sea duck. Ornithology, 142(3),
+Article ukaf008. <a href="https://doi.org/10.1093/ornithology/ukaf008"
+class="uri">https://doi.org/10.1093/ornithology/ukaf008</a></p>
+<p>Petersen, M. R., &amp; Douglas, D. C. (2004). Winter ecology of
+Spectacled Eiders: environmental characteristics and population change.
+The Condor, 106(1), 79–94. <a href="https://doi.org/10.2307/1370518"
+class="uri">https://doi.org/10.2307/1370518</a></p>
+<br>
+<p>
+<button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
+<span class="glyphicon glyphicon-wrench" aria-hidden="true"></span>
+Session information
+</button>
+</p>
+<div id="workflowr-sessioninfo" class="collapse">
+<pre class="r"><code>sessionInfo()</code></pre>
+<pre><code>R version 4.6.1 (2026-06-24 ucrt)
+Platform: x86_64-w64-mingw32/x64
+Running under: Windows 11 x64 (build 26200)
+
+Matrix products: default
+  LAPACK version 3.12.1
+
+locale:
+[1] LC_COLLATE=English_United States.utf8 
+[2] LC_CTYPE=English_United States.utf8   
+[3] LC_MONETARY=English_United States.utf8
+[4] LC_NUMERIC=C                          
+[5] LC_TIME=English_United States.utf8    
+
+time zone: America/Anchorage
+tzcode source: internal
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+[1] fs_2.1.0        progress_1.2.3  dplyr_1.2.1     terra_1.9-11   
+[5] sf_1.1-0        workflowr_1.7.2
+
+loaded via a namespace (and not attached):
+ [1] sass_0.4.10        generics_0.1.4     class_7.3-23       KernSmooth_2.23-26
+ [5] stringi_1.8.7      hms_1.1.4          digest_0.6.39      magrittr_2.0.5    
+ [9] evaluate_1.0.5     grid_4.6.1         fastmap_1.2.0      rprojroot_2.1.1   
+[13] jsonlite_2.0.0     processx_3.9.0     whisker_0.4.1      e1071_1.7-17      
+[17] DBI_1.3.0          promises_1.5.0     httr_1.4.8         codetools_0.2-20  
+[21] jquerylib_0.1.4    cli_3.6.6          rlang_1.2.0        crayon_1.5.3      
+[25] units_1.0-1        withr_3.0.2        cachem_1.1.0       yaml_2.3.12       
+[29] otel_0.2.0         tools_4.6.1        httpuv_1.6.17      vctrs_0.7.3       
+[33] R6_2.6.1           proxy_0.4-29       lifecycle_1.0.5    classInt_0.4-11   
+[37] git2r_0.36.2       stringr_1.6.0      pkgconfig_2.0.3    callr_3.7.6       
+[41] pillar_1.11.1      bslib_0.10.0       later_1.4.8        glue_1.8.1        
+[45] Rcpp_1.1.1-1.1     xfun_0.57          tibble_3.3.1       tidyselect_1.2.1  
+[49] rstudioapi_0.18.0  knitr_1.51         htmltools_0.5.9    rmarkdown_2.31    
+[53] compiler_4.6.1     prettyunits_1.2.0  getPass_0.2-4     </code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+
+<!-- Adjust MathJax settings so that all math formulae are shown using
+TeX fonts only; see
+https://docs.mathjax.org/en/latest/web/configuration.html. This will make
+the presentation more consistent at the cost of the webpage sometimes
+taking slightly longer to load. Note that this only works because the
+footer is added to webpages before the MathJax javascript. -->
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({
+    "HTML-CSS": { availableFonts: ["TeX"] }
+  });
+</script>
+
+
+
+
+</div>
+</div>
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+<script>
+$(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
+
+    // move toc-ignore selectors from section div to header
+    $('div.section.toc-ignore')
+        .removeClass('toc-ignore')
+        .children('h1,h2,h3,h4,h5').addClass('toc-ignore');
+
+    // establish options
+    var options = {
+      selectors: "h1,h2,h3",
+      theme: "bootstrap3",
+      context: '.toc-content',
+      hashGenerator: function (text) {
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
+      },
+      ignoreSelector: ".toc-ignore",
+      scrollTo: 0
+    };
+    options.showAndHide = false;
+    options.smoothScroll = true;
+
+    // tocify
+    var toc = $("#TOC").tocify(options).data("toc-tocify");
+});
+</script>
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
