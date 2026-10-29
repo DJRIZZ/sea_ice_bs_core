@@ -9,11 +9,11 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="D. Rizzolo" />
+<meta name="author" content="01_convert_daily_netcdf_bootstrap_to_geotif.Rmd" />
 
-<meta name="date" content="2026-04-20" />
+<meta name="date" content="2026-10-28" />
 
-<title>Convert netCDF to geotifs</title>
+<title>Convert netCDF to GeoTIFF</title>
 
 <script src="site_libs/header-attrs-2.31/header-attrs.js"></script>
 <script src="site_libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
@@ -372,9 +372,9 @@ div.tocify {
 
 
 
-<h1 class="title toc-ignore">Convert netCDF to geotifs</h1>
-<h4 class="author">D. Rizzolo</h4>
-<h4 class="date">2026-04-20</h4>
+<h1 class="title toc-ignore">Convert netCDF to GeoTIFF</h1>
+<h4 class="author">01_convert_daily_netcdf_bootstrap_to_geotif.Rmd</h4>
+<h4 class="date">2026-10-28</h4>
 
 </div>
 
@@ -403,7 +403,7 @@ class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2026-04-20
+<strong>Last updated:</strong> 2026-10-28
 </p>
 <p>
 <strong>Checks:</strong> <span
@@ -534,15 +534,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreedb6ff234e3e66bf568fcd0fadbae1100f44d3930targetblankdb6ff23a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretree4909c18c82ce619c2439ceb533484e569550a461targetblank4909c18a">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/db6ff234e3e66bf568fcd0fadbae1100f44d3930" target="_blank">db6ff23</a>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/4909c18c82ce619c2439ceb533484e569550a461" target="_blank">4909c18</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreedb6ff234e3e66bf568fcd0fadbae1100f44d3930targetblankdb6ff23a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretree4909c18c82ce619c2439ceb533484e569550a461targetblank4909c18a"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -552,7 +552,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/db6ff234e3e66bf568fcd0fadbae1100f44d3930" target="_blank">db6ff23</a>.
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/4909c18c82ce619c2439ceb533484e569550a461" target="_blank">4909c18</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -569,41 +569,101 @@ were generated:
 Ignored files:
     Ignored:    .Rhistory
     Ignored:    .Rproj.user/
+    Ignored:    analysis/archive/
+    Ignored:    analysis/figure/
     Ignored:    code/.Rhistory
     Ignored:    code/archive/
     Ignored:    code/sic_nsidc_download_summarize/archive/
     Ignored:    data/sourced_data/bremen_daily_sic/
     Ignored:    data/sourced_data/nsidc_sic_v3/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_1979-1991/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_1992-2025/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_temp/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/NSIDC-0079_4-19911191-19920430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19791101_19920430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921101_19921105/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_19921105/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231_temp/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20241101_20250430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20260101_20260430/
     Ignored:    library/
     Ignored:    output/archive/
     Ignored:    temp/
 
 Untracked files:
+    Untracked:  User notice_ SSMIS data processing to end by 30 June 2025 _ National Snow and Ice Data Center.pdf
+    Untracked:  analysis/00_download_seaice_data_from_nsidc_Rmd.txt
+    Untracked:  analysis/01_convert_daily_netcdf_bootstrap_to_geotif_Rmd.txt
+    Untracked:  analysis/02_extract_specEider_winterIce_bootstrap_sic_geotif.Rmd
+    Untracked:  analysis/02_extract_specEider_winterIce_bootstrap_sic_geotif_Rmd.txt
+    Untracked:  analysis/03_summarize_daily_min_bs3_sic.Rmd
+    Untracked:  analysis/03_summarize_daily_min_bs3_sic_Rmd.txt
     Untracked:  analysis/README_updated_sea_ice_nsidc_download_20260407.txt
+    Untracked:  code/estimate_pearson_correlation_bt_iceDays_seaIceExtent.R
+    Untracked:  code/ice_area_daily_nsidc.R
+    Untracked:  code/ice_extent_daily_nsidc.R
+    Untracked:  code/plot_iceDays_iceExent_1992-2024.R
+    Untracked:  code/render_rmarkdowns_to_html_output.R
+    Untracked:  code/sic_nsidc_download_summarize/01_convert_daily_netcdf_bootstrap_to_geotif.txt
+    Untracked:  code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.html
+    Untracked:  code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.rmd
+    Untracked:  code/sic_nsidc_download_summarize/02_extract_specEider_winterice_bootstrap_sic_geotif.txt
+    Untracked:  code/sic_nsidc_download_summarize/03_summarize_daily_min4_bs3_append_to_allYears_20250902.R
+    Untracked:  code/sic_nsidc_download_summarize/03_summarize_daily_min_bs3_sic.txt
+    Untracked:  code/sic_nsidc_download_summarize/04_calc_daily_means_pixels_1to4_20250903.R
     Untracked:  code/sic_nsidc_download_summarize/README_updated_sea_ice_nsidc_download_20260407.txt
     Untracked:  code/sic_nsidc_download_summarize/rbind_sic_bootstrapv4_16pixles_timeSeries_recentYear.R
+    Untracked:  code/summarize_iceDays_Christie_et_al_2018_Dryad_data.R
+    Untracked:  create_mdJSONdictio.R
+    Untracked:  data/core_area_petersen_douglas_2004/
+    Untracked:  data/sourced_data/bering_sea_summary_nsidc/
+    Untracked:  incomming/
     Untracked:  metadata.json
+    Untracked:  metadata/AK_DMPTemplate_v1.3.docm
+    Untracked:  metadata/dmp_sea_ice_bs_core_20261026.docm
+    Untracked:  metadata/mdJSONdictio_Dictionary_Template_v2 - Copy.xlsx
+    Untracked:  metadata/sea_ice_vars_1979_2024_mdJSONdictio.json
+    Untracked:  metadata/sea_ice_vars_1979_2024_mdJSONdictio.xlsx
+    Untracked:  output/00_download_seaice_data_from_nsidc.html
     Untracked:  output/figs/just_core.jpg
+    Untracked:  output/figs/plot_count_days_ge95pct_sic_1979-2024.png
     Untracked:  output/figs/plot_count_days_ge95pct_sic_1992-2024.png
+    Untracked:  output/figs/plot_iceDays_iceExtent_2026-06-29.jpg
+    Untracked:  output/figs/plot_iceDays_iceExtent_2026-07-28.jpg
+    Untracked:  output/sic_beringSea_16pixels/1979_sic_bootstrapv4_16pixels_01Nov-30Apr.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1979-1991.csv
+    Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-1979.csv
     Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv
     Untracked:  output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_2024-2025.csv
+    Untracked:  output/sic_beringSea_4pixels/compare_bs0_bs3_bs4_sic_min4_output_20260420.xlsx
     Untracked:  output/sic_beringSea_4pixels/compare_christie_to_v4_daily_4pixel_min_sic_1992-2024.csv
     Untracked:  output/sic_beringSea_4pixels/daily_4pixel_min_sic_1992-2024.csv
-    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1995_2025.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1979_2024.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1992_2024.csv
+    Untracked:  output/sic_beringSea_4pixels/sea_ice_vars_1992_2025.csv
+    Untracked:  output/summary_ice_area_daily_bering_sea_1992-2025.csv
+    Untracked:  output/summary_ice_extent_daily_bering_sea_1992-2025.csv
 
 Unstaged changes:
-    Modified:   analysis/00_download_seaice_data_from_nsidc_20250902.Rmd
+    Modified:   .gitignore
+    Deleted:    analysis/00_download_seaice_data_from_nsidc_20250902.Rmd
+    Deleted:    analysis/04_summarize_daily_min_bs3_sic.Rmd
     Modified:   code/create_workflowr_prj.R
     Modified:   code/sic_nsidc_download_summarize/00_download_seaice_data_from_nsidc_20250903.R
     Modified:   code/sic_nsidc_download_summarize/01_convert_daily_netcdf_bootstrap_to_geotif_20250902.R
     Modified:   code/sic_nsidc_download_summarize/02_extract_specEider_winterIce_bootstrap_sic_geotif_20250902.R
-    Modified:   code/sic_nsidc_download_summarize/04_summarize_daily_min4_bs3_append_to_allYears_20250902.R
+    Deleted:    code/sic_nsidc_download_summarize/03_calc_daily_means_pixels_1to4_20250903.R
+    Deleted:    code/sic_nsidc_download_summarize/04_summarize_daily_min4_bs3_append_to_allYears_20250902.R
+    Modified:   cookies.txt
     Modified:   data/data_christie_et_al_2018/spei_winter_ice.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_area_nsidc/bs_ice_area_long.csv
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_area_nsidc/daily_si_area_nsidc_wide_20241010.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_extent_nsidc/N_Sea_Ice_Index_Regional_Daily_Data_G02135_v3.0.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_extent_nsidc/daily_si_ext_nsidc_wide_20241010.xlsx
+    Deleted:    data/sourced_data/bearing_sea_summary_nsidc/daily_si_extent_nsidc/read_me_daily_si_extent_nsidc.txt
+    Modified:   output/figs/plot_count_days_ge95pct_sic_1992-2023.png
 
 </code></pre>
 <p>
@@ -650,6 +710,40 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+Rmd
+</td>
+<td>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/blob/4909c18c82ce619c2439ceb533484e569550a461/analysis/01_convert_daily_netcdf_bootstrap_to_geotif.Rmd" target="_blank">4909c18</a>
+</td>
+<td>
+DJRIZZ
+</td>
+<td>
+2026-10-28
+</td>
+<td>
+commit prior to RDR submission
+</td>
+</tr>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/DJRIZZ/sea_ice_bs_core/dd4b3a76416735b91422e1a6f13f426dd75d9a12/docs/01_convert_daily_netcdf_bootstrap_to_geotif.html" target="_blank">dd4b3a7</a>
+</td>
+<td>
+DJRIZZ
+</td>
+<td>
+2026-04-20
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 html
@@ -759,52 +853,122 @@ some directory changes for code testing, will undo later
 </div>
 </div>
 </div>
-<div id="file-conversion" class="section level2">
-<h2>File Conversion</h2>
-<p>This R code uses packages ncdf4, terra, and progress to load each
-daily National Snow and Ice Data Center sea ice concentration data file
-in its native netcdf format and converts it to a geotif file. The
-package progress is used to create a progress bar to monitor progress
-through all the files to be converted.</p>
-<pre class="r"><code># Define input and output directories (run as RStudio project)
-input_dir &lt;- &quot;data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231&quot;
-#dir.exists(&quot;data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231&quot;)
-output_dir &lt;- &quot;data/sourced_data/nsidc_sic_v4/sic_geotif&quot;
-#dir.exists(&quot;data/sourced_data/nsidc_sic_v4/sic_geotif&quot;)
+<div id="sea-ice-data-netcdf-to-geotiff-conversion"
+class="section level2">
+<h2>Sea Ice Data: netCDF to GeoTIFF Conversion</h2>
+<p>This script converts daily National Snow and Ice Data Center (NSIDC)
+sea ice concentration files from their native netCDF format
+(<code>.nc</code>) to GeoTIFF format (<code>.tif</code>), using the
+packages <code>ncdf4</code>, <code>terra</code>, and
+<code>progress</code>.</p>
+<p>For each file, the raster is loaded, assigned a coordinate reference
+system if one is not already defined, and has flagged (not ice
+concentration) values set to <code>NA</code> before being converted to
+GeoTIFF. A progress bar tracks progress through the batch, and any files
+that fail to convert are recorded rather than halting the run.</p>
+</div>
+<div id="work-flow" class="section level2">
+<h2>Work flow</h2>
+<p>This is the second script in a four-script workflow. The raw data are
+downloaded with <code>00_download_seaice_data_from_nsidc.Rmd</code>
+script, converted from the native netCDF format to GeoTIFFs with the
+current <code>01_convert_netcdf_to_geotif.Rmd</code>, then extracted
+from the pixels of interest using
+<code>02_extract_specEider_winterice_bootstrap_sic_geotif.Rmd</code>,
+and finally summarized into annual sea ice variables with
+<code>03_summarize_daily_min_bs3_sic.Rmd</code>.</p>
+<div id="inputs" class="section level3">
+<h3>Inputs</h3>
+<ul>
+<li><strong>Input directory</strong>: a directory of daily netCDF files
+downloaded by the companion download script, named
+<code>NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.nc</code>.</li>
+<li><strong>Output directory</strong>: the destination folder for
+converted GeoTIFF files, created automatically if it does not already
+exist.</li>
+<li><strong>Coordinate reference system</strong>: EPSG:3411 (NSIDC Sea
+Ice Polar Stereographic North), assigned only if a file’s raster does
+not already have a CRS defined.</li>
+<li><strong>Flag values</strong>: raw sea ice concentration values above
+1000 (per NSIDC metadata, flag values of 1100 and 1200 indicate land and
+missing data, respectively) are set to <code>NA</code>.</li>
+</ul>
+<p>The input directory is specified as
+<em>data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921101_19921105</em>
+and the output directory as
+<em>data/sourced_data/nsidc_sic_v4/sic_geotif</em>. A total of 5 netCDF
+file(s) were found in the input directory and will be processed
+below.</p>
+</div>
+<div id="conversion-loop" class="section level3">
+<h3>Conversion loop</h3>
+<p>All netCDF files in the input directory (filtered to
+<code>nc_files</code> above) are processed in a loop: each is loaded as
+a raster with <code>terra::rast()</code>, assigned a coordinate
+reference system if missing, has flagged values set to <code>NA</code>,
+and is written out as a GeoTIFF with the same base filename.</p>
+<pre class="r"><code># create progress bar
+pb &lt;- progress_bar$new(
+  format = &quot;  Converting [:bar] :percent | :current/:total | :filename&quot;, # pb layout
+  total = length(nc_files), # total files
+  clear = FALSE, # keep bar visible until loop finishes
+  width = 60 # displayed bar width
+)
 
-# list NetCDF daily files
-#nc_files &lt;- list.files(path = normalizePath(input_dir), pattern = &quot;\\.nc$&quot;, full.names = TRUE)
-#nc_files &lt;- list.files(path = input_dir, pattern = &quot;\\.nc$&quot;, full.names = TRUE)
-input_dir &lt;- path_abs(&quot;data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231&quot;)
-nc_files &lt;- list.files(input_dir, pattern = &quot;\\.nc$&quot;, full.names = TRUE)
-#length(nc_files)
-#total_files &lt;- length(nc_files) # to use in progress bar</code></pre>
-</div>
-<div id="setup" class="section level2">
-<h2>Setup</h2>
-<p>The input directory is specified as C:/Users/drizzolo/OneDrive -
-DOI/Desktop/Documents/projects/sea_ice_bs_core/data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231
-and the output directory as data/sourced_data/nsidc_sic_v4/sic_geotif.
-The code also setup a progress bar to monitor the batch file conversions
-using the package progress and initializes an error_log for tracking
-file conversion errors.</p>
-<pre class="r"><code>for (file in list.files(input_dir, full.names = TRUE)) { # loop through each daily NetCDF file
-  
-  base_name &lt;- tools::file_path_sans_ext(basename(file)) # extract base name without extension
-  out_file &lt;- file.path(output_dir, paste0(base_name, &quot;.tif&quot;)) # build output file name reusing base name with .tif extension
-  r &lt;- rast(file)  # load as raster, NB &quot;varname&quot; option not needed
-  if (is.na(crs(r))) crs(r) &lt;- &quot;EPSG:3411&quot;  # assign CRS (if not already defined in file)
-  r[r &gt; 1000] &lt;- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
-  writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
+error_log &lt;- list() # collect any files that fail to convert, with the associated error message
+
+for (f in nc_files) { # loop through each daily NetCDF file
+
+  pb$tick(tokens = list(filename = basename(f))) # progress bar by 1 step each file
+
+  tryCatch({
+    base_name &lt;- tools::file_path_sans_ext(basename(f)) # extract base name without extension
+    out_file &lt;- file.path(output_dir, paste0(base_name, &quot;.tif&quot;)) # build output file name reusing base name with .tif extension
+    r &lt;- rast(f)  # load as raster, NB &quot;varname&quot; option not needed
+    if (is.na(crs(r))) crs(r) &lt;- &quot;EPSG:3411&quot;  # assign CRS (if not already defined in file)
+    r[r &gt; 1000] &lt;- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
+    writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
+  }, error = function(e) {
+    error_log[[length(error_log) + 1]] &lt;&lt;- list(file = basename(f), message = conditionMessage(e))
+  })
+}
+
+if (length(error_log) &gt; 0) {
+  cat(glue::glue(&quot;\n{length(error_log)} of {length(nc_files)} file(s) failed to convert:\n&quot;))
+  for (err in error_log) {
+    cat(glue::glue(&quot;  {err$file}: {err$message}\n&quot;))
+  }
+} else {
+  cat(glue::glue(&quot;\nAll {length(nc_files)} file(s) converted successfully.\n&quot;))
 }</code></pre>
+<pre><code>All 5 file(s) converted successfully.</code></pre>
 </div>
-<div id="for-loop" class="section level2">
-<h2>For Loop</h2>
-<p>All netCDF files are saved in one directory and a file list is
-generated for this directory. This list is used in a for loop to load
-each netCDF file, converts it to a raster with terra::rast, assigns a
-coordinate reference system (EPSG: 3411), and assigns NA to flagged
-values (as per metadata values of 1100 and 1200 are flagged values).</p>
+</div>
+<div id="outputs" class="section level2">
+<h2>Outputs</h2>
+<p>Running this script produces the following:</p>
+<ul>
+<li><strong>A directory of GeoTIFF files</strong> at
+C:/Users/drizzolo/OneDrive -
+DOI/Desktop/Documents/projects/sea_ice_bs_core/data/sourced_data/nsidc_sic_v4/sic_geotif,
+one per successfully converted netCDF input, named
+<code>NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif</code> - matching
+the naming convention expected by the extraction script that follows
+this one in the pipeline.</li>
+<li><strong><code>error_log</code></strong>: a list of any input files
+that failed to convert, each with the associated error message, so
+failures can be investigated without needing to re-run the entire
+batch.</li>
+</ul>
+</div>
+<div id="reference" class="section level2">
+<h2>Reference</h2>
+<p>Comiso, J. C. (2023). Bootstrap Sea Ice Concentrations from Nimbus-7
+SMMR and DMSP SSM/I-SSMIS. (NSIDC-0079, Version 4). [Data Set]. Boulder,
+Colorado USA. NASA National Snow and Ice Data Center Distributed Active
+Archive Center. <a href="https://doi.org/10.5067/X5LG68MH013O"
+class="uri">https://doi.org/10.5067/X5LG68MH013O</a>. [time series of
+interest: 01 Nov 1992 to 31 Dec 2024]. Date Accessed 2025-09-02.</p>
 <br>
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-sessioninfo" data-toggle="collapse" data-target="#workflowr-sessioninfo" style="display: block;">
@@ -814,9 +978,9 @@ Session information
 </p>
 <div id="workflowr-sessioninfo" class="collapse">
 <pre class="r"><code>sessionInfo()</code></pre>
-<pre><code>R version 4.5.3 (2026-03-11 ucrt)
+<pre><code>R version 4.6.1 (2026-06-24 ucrt)
 Platform: x86_64-w64-mingw32/x64
-Running under: Windows 11 x64 (build 26100)
+Running under: Windows 11 x64 (build 26200)
 
 Matrix products: default
   LAPACK version 3.12.1
@@ -835,22 +999,21 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
-[1] fs_2.0.1        progress_1.2.3  terra_1.9-11    ncdf4_1.24     
-[5] workflowr_1.7.2
+[1] glue_1.8.1      fs_2.1.0        progress_1.2.3  terra_1.9-11   
+[5] ncdf4_1.24      workflowr_1.7.2
 
 loaded via a namespace (and not attached):
- [1] jsonlite_2.0.0    crayon_1.5.3      compiler_4.5.3    promises_1.5.0   
- [5] Rcpp_1.1.1        stringr_1.6.0     git2r_0.36.2      callr_3.7.6      
+ [1] jsonlite_2.0.0    crayon_1.5.3      compiler_4.6.1    promises_1.5.0   
+ [5] Rcpp_1.1.1-1.1    stringr_1.6.0     git2r_0.36.2      callr_3.7.6      
  [9] later_1.4.8       jquerylib_0.1.4   yaml_2.3.12       fastmap_1.2.0    
 [13] R6_2.6.1          knitr_1.51        tibble_3.3.1      rprojroot_2.1.1  
-[17] bslib_0.10.0      pillar_1.11.1     rlang_1.1.7       cachem_1.1.0     
+[17] bslib_0.10.0      pillar_1.11.1     rlang_1.2.0       cachem_1.1.0     
 [21] stringi_1.8.7     httpuv_1.6.17     xfun_0.57         getPass_0.2-4    
-[25] sass_0.4.10       otel_0.2.0        cli_3.6.5         magrittr_2.0.4   
-[29] ps_1.9.1          digest_0.6.39     processx_3.8.6    rstudioapi_0.18.0
-[33] hms_1.1.4         lifecycle_1.0.5   prettyunits_1.2.0 vctrs_0.7.2      
-[37] evaluate_1.0.5    glue_1.8.0        whisker_0.4.1     codetools_0.2-20 
-[41] rmarkdown_2.31    httr_1.4.8        tools_4.5.3       pkgconfig_2.0.3  
-[45] htmltools_0.5.9  </code></pre>
+[25] sass_0.4.10       otel_0.2.0        cli_3.6.6         magrittr_2.0.5   
+[29] digest_0.6.39     processx_3.9.0    rstudioapi_0.18.0 hms_1.1.4        
+[33] lifecycle_1.0.5   prettyunits_1.2.0 vctrs_0.7.3       evaluate_1.0.5   
+[37] whisker_0.4.1     codetools_0.2-20  rmarkdown_2.31    httr_1.4.8       
+[41] tools_4.6.1       pkgconfig_2.0.3   htmltools_0.5.9  </code></pre>
 </div>
 </div>
 </div>
