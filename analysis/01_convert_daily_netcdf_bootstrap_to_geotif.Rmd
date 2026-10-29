@@ -1,6 +1,6 @@
 ---
-title: "Convert netCDF to geotifs"
-author: "D. Rizzolo"
+title: "Convert netCDF to GeoTIFF"
+author: "01_convert_daily_netcdf_bootstrap_to_geotif.Rmd"
 date: "`r Sys.Date()`"
 output: workflowr::wflow_html
 editor_options:
@@ -8,51 +8,107 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+#01_convert_daily_netcdf_bootstrap_to_geotif.Rmd
+
 knitr::opts_chunk$set(echo = TRUE)
 # script to convert National Snow and Ice Data Center sea ice NetCDF files (*.nc) to geotifs (previously NSDIC provided data as binary files)
 library(ncdf4) # works with Network Common Data Form (NetCDF, file extension *.nc) files
-library(terra) # current functionality of deprecated geos package
+library(terra) # current version of deprecated geos package
 library(progress) # progress bar package for monitoring for loop through files
 library(fs) # file paths in RMD run through workflowr are a challenge...
+library(glue)
 ```
 
-## File Conversion
-This R code uses packages ncdf4, terra, and progress to load each daily National Snow and Ice Data Center sea ice concentration data file in its native netcdf format and converts it to a geotif file. The package progress is used to create a progress bar to monitor progress through all the files to be converted. 
+## Sea Ice Data: netCDF to GeoTIFF Conversion
 
-```{r definePaths, warnings = FALSE}
-# Define input and output directories (run as RStudio project)
-input_dir <- "data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231"
-#dir.exists("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231")
-output_dir <- "data/sourced_data/nsidc_sic_v4/sic_geotif"
-#dir.exists("data/sourced_data/nsidc_sic_v4/sic_geotif")
+This script converts daily National Snow and Ice Data Center (NSIDC) sea ice concentration files from their native netCDF format (`.nc`) to GeoTIFF format (`.tif`), using the packages `ncdf4`, `terra`, and `progress`. 
+
+For each file, the raster is loaded, assigned a coordinate reference system if one is not already defined, and has flagged (not ice concentration) values set to `NA` before being converted to GeoTIFF. A progress bar tracks progress through the batch, and any files that fail to convert are recorded rather than halting the run.
+
+## Work flow
+
+This is the second script in a four-script workflow. The raw data are downloaded with `00_download_seaice_data_from_nsidc.Rmd` script, converted from the native netCDF format to GeoTIFFs with the current `01_convert_netcdf_to_geotif.Rmd`, then extracted from the pixels of interest using `02_extract_specEider_winterice_bootstrap_sic_geotif.Rmd`, and finally summarized into annual sea ice variables with `03_summarize_daily_min_bs3_sic.Rmd`.
+
+### Inputs
+
+- **Input directory**: a directory of daily netCDF files downloaded by the companion download script, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.nc`.
+- **Output directory**: the destination folder for converted GeoTIFF files, created automatically if it does not already exist.
+- **Coordinate reference system**: EPSG:3411 (NSIDC Sea Ice Polar Stereographic North), assigned only if a file's raster does not already have a CRS defined.
+- **Flag values**: raw sea ice concentration values above 1000 (per NSIDC metadata, flag values of 1100 and 1200 indicate land and missing data, respectively) are set to `NA`.
+
+```{r define_paths, warning = FALSE, echo = FALSE, results='hide'}
+# Define analysis parameters ####
+# must match the start_date/end_date used in 00_download_seaice_data_from_nsidc.Rmd
+# to download the netCDF files being converted here
+start_date <- as.Date("1992-11-01")
+end_date   <- as.Date("1992-11-05")
+
+# Define input and output directories (run as RStudio project) ####
+# input_dir_root built the same way as save_dir in 00_download_seaice_data_from_nsidc.Rmd,
+# so this path always matches whatever date range was actually downloaded
+input_dir_root  <- glue("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_{format(start_date, '%Y%m%d')}_{format(end_date, '%Y%m%d')}")
+output_dir_root <- "data/sourced_data/nsidc_sic_v4/sic_geotif"
+
+input_dir  <- path_abs(input_dir_root)
+output_dir <- path_abs(output_dir_root)
+
+dir_create(output_dir, recurse = TRUE) # ensure output directory exists before writing any GeoTIFFs
+dir_exists(input_dir)
+dir_exists(output_dir)
 
 # list NetCDF daily files
-#nc_files <- list.files(path = normalizePath(input_dir), pattern = "\\.nc$", full.names = TRUE)
-#nc_files <- list.files(path = input_dir, pattern = "\\.nc$", full.names = TRUE)
-input_dir <- path_abs("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231")
 nc_files <- list.files(input_dir, pattern = "\\.nc$", full.names = TRUE)
-#length(nc_files)
-#total_files <- length(nc_files) # to use in progress bar
-
 ```
 
-## Setup
-The input directory is specified as `r input_dir` and the output directory as `r output_dir`. The code also setup a progress bar to monitor the batch file conversions using the package progress and initializes an error_log for tracking file conversion errors.
+The input directory is specified as *`r input_dir_root`* and the output directory as *`r output_dir_root`*. A total of `r length(nc_files)` netCDF file(s) were found in the input directory and will be processed below.
 
-```{r loop, warnings = FALSE}
-for (file in list.files(input_dir, full.names = TRUE)) { # loop through each daily NetCDF file
-  
-  base_name <- tools::file_path_sans_ext(basename(file)) # extract base name without extension
-  out_file <- file.path(output_dir, paste0(base_name, ".tif")) # build output file name reusing base name with .tif extension
-  r <- rast(file)  # load as raster, NB "varname" option not needed
-  if (is.na(crs(r))) crs(r) <- "EPSG:3411"  # assign CRS (if not already defined in file)
-  r[r > 1000] <- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
-  writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
+### Conversion loop
+
+All netCDF files in the input directory (filtered to `nc_files` above) are processed in a loop: each is loaded as a raster with `terra::rast()`, assigned a coordinate reference system if missing, has flagged values set to `NA`, and is written out as a GeoTIFF with the same base filename.
+
+```{r convert_loop, warning = FALSE}
+# create progress bar
+pb <- progress_bar$new(
+  format = "  Converting [:bar] :percent | :current/:total | :filename", # pb layout
+  total = length(nc_files), # total files
+  clear = FALSE, # keep bar visible until loop finishes
+  width = 60 # displayed bar width
+)
+
+error_log <- list() # collect any files that fail to convert, with the associated error message
+
+for (f in nc_files) { # loop through each daily NetCDF file
+
+  pb$tick(tokens = list(filename = basename(f))) # progress bar by 1 step each file
+
+  tryCatch({
+    base_name <- tools::file_path_sans_ext(basename(f)) # extract base name without extension
+    out_file <- file.path(output_dir, paste0(base_name, ".tif")) # build output file name reusing base name with .tif extension
+    r <- rast(f)  # load as raster, NB "varname" option not needed
+    if (is.na(crs(r))) crs(r) <- "EPSG:3411"  # assign CRS (if not already defined in file)
+    r[r > 1000] <- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
+    writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
+  }, error = function(e) {
+    error_log[[length(error_log) + 1]] <<- list(file = basename(f), message = conditionMessage(e))
+  })
 }
 
+if (length(error_log) > 0) {
+  cat(glue::glue("\n{length(error_log)} of {length(nc_files)} file(s) failed to convert:\n"))
+  for (err in error_log) {
+    cat(glue::glue("  {err$file}: {err$message}\n"))
+  }
+} else {
+  cat(glue::glue("\nAll {length(nc_files)} file(s) converted successfully.\n"))
+}
 ```
 
-## For Loop
+## Outputs
 
-All netCDF files are saved in one directory and a file list is generated for this directory. This list is used in a for loop to load each netCDF file, converts it to a raster with terra::rast, assigns a coordinate reference system (EPSG: 3411), and assigns NA to flagged values (as per metadata values of 1100 and 1200 are flagged values). 
+Running this script produces the following:
 
+- **A directory of GeoTIFF files** at `r output_dir`, one per successfully converted netCDF input, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif` - matching the naming convention expected by the extraction script that follows this one in the pipeline.
+- **`error_log`**: a list of any input files that failed to convert, each with the associated error message, so failures can be investigated without needing to re-run the entire batch.
+
+## Reference
+Comiso, J. C. (2023). Bootstrap Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS. (NSIDC-0079, Version 4). [Data Set]. Boulder, Colorado USA. NASA National Snow and Ice Data Center Distributed Active Archive Center. https://doi.org/10.5067/X5LG68MH013O. [time series of interest: 01 Nov 1992 to 31 Dec 2024]. Date Accessed 2025-09-02.
