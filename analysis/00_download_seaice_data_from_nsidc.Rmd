@@ -1,0 +1,345 @@
+---
+title: "Sea Ice Data Download"
+author: "00_download_seaice_data_from_nsidc.Rmd"
+date: "`r Sys.Date()`"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+# 00_download_seaice_data_from_nsidc.Rmd
+
+knitr::opts_chunk$set(echo = TRUE)
+# got packages?
+library(httr2) # build and send the HTTP request to the CMR API, and parse its JSON response
+library(glue) # file name and URL creation using referenced parts of dates
+library(fs) # directory operations which were causing problems when using the base R version, not sure why
+library(purrr) # map_dfr() and detect() to turn CMR's nested granule list into a flat table
+library(tibble) # construct the granules and summary_tbl data frames
+library(lubridate) # month() to filter dates down to winter_months
+library(dplyr) # filter() to remove monthly-average files from the granule list
+```
+
+## Update 2026
+Bootstrap sea ice concentrations from Nimbus-7 SMMR and DMSP SSM/I satellites ended in December 2025 when the Department of Defense stopped processing and delivering satellite imagery data to the NSIDC/public, as per this NSIDC notice: https://nsidc.org/data/user-resources/data-announcements/user-notice-ssmis-data-processing-end-30-june-2025
+
+Unless the DOD re-establishes that data stream, another source of sea ice concentration data will be required for assess sea ice cover data in the spectacled eider sea ice index area. The best alternative is likely *NOAA/NSIDC Climate Data Record of Passive Microwave Sea Ice Concentration, Version 6* (https://nsidc.org/data/g02202/versions/6).
+
+## Sea Ice Data: Download
+
+Sea ice concentration (sic) data are from the Scanning Multichannel Microwave Radiometer (SMMR) on the Nimbus-7 satellite and the Special Sensor Microwave/Imager (SSM/I) sensors on the Defense Meteorological Satellite Program's (DMSP) -F8, -F11, and -F13 satellites (Dataset: "Bootstrap Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS V004." 
+
+Data were generated using the Advanced Microwave Scanning Radiometer - Earth Observing System (AMSR-E) Bootstrap Algorithm with daily varying tie-points and gridded on the SSM/I polar stereographic grid (25 x 25 km grid cells; northern hemisphere spatial reference system EPSG:3411). Data coverage began on 01 November 1978. The current version of the bootstrap algorithm is version 4.0, which was released in November 2023. 
+
+Data also are available for manual download at: https://search.earthdata.nasa.gov/ (see end of this markdown doc) or programmatically downloaded from NASA's cloud-hosted archive (see below).
+
+Data overview and links to documentation, including a user's guide, are at: https://nsidc.org/data/nsidc-0079/versions/4.
+
+Version 4.0 uses the netCDF file format (.nc), which is a change from the previous versions that used the binary format (.bin). The netCDF format contains all metadata and can be read into Program R and examined with functions from the package "ncdf4", which is not used here. 
+ 
+Data files use the naming convention: NSIDC0079_SEAICE_PS_N25km_[date as YYYYmmdd]_v4.0.nc. 
+
+This Program R script downloads data from data.nsidc.earthdatacloud.nasa.gov between two specified dates (*start_date*, *end_date*) and is setup to download only for the months (November, December, January, February, March, and April), as specified in the vector *winter_months*. 
+
+This script uses a project-based directory structure with file path *data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_[YYYYmmdd start date]_[YYYYmmdd end date]/* as the download directory.
+
+## Work flow
+
+This is the first script in a four-script workflow. The raw data are downloaded here with this `00_download_seaice_data_from_nsidc.Rmd` script, converted from the native netCDF format to GeoTIFFs with `01_convert_netcdf_to_geotif.Rmd`, extracted from the pixels of interest using `02_extract_specEider_winterice_bootstrap_sic_geotif.Rmd`, and summarized into annual sea ice variables with `03_summarize_daily_min_bs3_sic.Rmd`.
+
+## Data download
+
+This code queries NASA's Common Metadata Repository (CMR) for the matching daily granules (i.e., daily data sets). It searches the relevant collection for the specified date range, filters to northern-hemisphere files (using the `*N25km*` of the file name), and excludes monthly-average summary files that CMR also returns. 
+
+Each matching daily file is downloaded via `curl`, authenticated using either an Earthdata Login (EDL) bearer token or a `.netrc` file containing Earthdata Login credentials. 
+
+For each download attempt, the file is checked (file size and content) to id cases where authentication failed and an error page was saved instead of the actual data file. The list of dates actually returned by CMR is compared to the list of dates requested, to id cases where NSIDC has not yet published data for part of the requested range (i.e., recent data - there is usually a several month lag, with data releases several times per year). 
+
+The R console displays messages indicating a successful download, a failed download, a failed validation check, a date with no available data, or if the file already exists in the directory.
+
+```{r download_setup, warning = FALSE}
+# Define download parameters ####
+
+collection_concept_id <- "C3177837864-NSIDC_CPRD"  # confirmed from Earthdata Search URL
+
+start_date <- as.Date("1992-11-01")
+end_date   <- as.Date("1992-11-05")
+
+winter_months <- c(11, 12, 1, 2, 3, 4) # winter as defined in Christie et al. 2018 & Flint et al. 2016; Petersen & Douglas 2004 define it differently
+
+granule_pattern <- "*N25km*"  # to get northern hemisphere imagery
+
+save_dir <- glue("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_{format(start_date, '%Y%m%d')}_{format(end_date, '%Y%m%d')}") # save directory ####
+dir_create(save_dir, recurse = TRUE)
+dir_exists(save_dir)
+
+# Auth options (Bearer token preferred; .netrc kept as fallback) ####
+edl_token  <- Sys.getenv("EARTHDATA_TOKEN", unset = "")
+netrc_path <- "C:/Temp/.netrc"  # must have entry for urs.earthdata.nasa.gov if used
+
+# Expected file size range, per user's manual-download observation ####
+# used to catch auth failures where curl saves an HTML/XML error page instead of the real .nc file; those are typically a few KB or less, well outside this range
+min_expected_bytes <- 60 * 1024   # 60 KB
+max_expected_bytes <- 80 * 1024   # 80 KB
+
+# Create date sequence, filtered to winter months ####
+
+all_dates <- seq.Date(start_date, end_date, by = "day")
+dates_to_download <- all_dates[month(all_dates) %in% winter_months]
+
+```
+
+## Inputs
+
+This R script uses the following inputs:
+
+- **Collection**: NSIDC-0079 v4 (Bootstrap Sea Ice Concentrations), CMR collection ID `r collection_concept_id`
+- **Date range requested**: `r start_date` through `r end_date`
+- **Months included**: `r winter_months` (winter months relevant to spectacled eiders; `r length(dates_to_download)` individual dates fall within this range and month filter)
+- **Hemisphere filter**: `r granule_pattern` (northern hemisphere only)
+- **Authentication**: Earthdata Login, via bearer token (if the `EARTHDATA_TOKEN` environment variable is set) or a `.netrc` file at `r netrc_path`
+- **Expected file size range**: `r min_expected_bytes / 1024` KB to `r max_expected_bytes / 1024` KB, used to flag likely authentication failures or corrupted downloads
+
+**Save directory**: files are downloaded to the following folder, which is created automatically if it does not already exist, and is named using the start and end dates above:
+
+`r save_dir`
+
+```{r query_cmr, echo = FALSE, warning = FALSE}
+# Query CMR for granule metadata ####
+# returns the raw list of matching granule records URLs
+
+get_granule_urls <- function(collection_concept_id, start_date, end_date, granule_pattern) {
+  
+  temporal_str <- glue(
+    "{format(start_date, '%Y-%m-%dT00:00:00Z')},{format(end_date, '%Y-%m-%dT23:59:59Z')}" # set date to ISO 8601 format
+  )
+ # construct HTTP request 
+  req <- request("https://cmr.earthdata.nasa.gov/search/granules.json") |>
+    req_url_query(
+      collection_concept_id = collection_concept_id, # which dataset to search within
+      temporal               = temporal_str, # date range string
+      page_size              = 2000, # up to 2000 results in one response
+      sort_key               = "-start_date",
+      "options[readable_granule_name][pattern]" = "true" # newest-first
+    ) |>
+    req_url_query(`readable_granule_name[]` = granule_pattern) # filter value (*N25km*), matched against each granule name
+  
+  # Send request and parse the response
+  resp <- req_perform(req)
+  parsed <- resp_body_json(resp, simplifyVector = FALSE)
+  entries <- parsed$feed$entry
+  
+  # Handle missing data warning message
+  if (length(entries) == 0) {
+    warning(glue("No granules found for collection {collection_concept_id} ",
+                 "between {start_date} and {end_date} matching '{granule_pattern}'."))
+    return(tibble(filename = character(), url = character()))
+  }
+   # Create table
+  purrr::map_dfr(entries, function(e) { # e is granule metadata
+    links <- e$links
+    data_link <- purrr::detect(links, function(l) { # scan list of links and return first link
+      rel <- l$rel # identifies download file
+      !is.null(rel) && grepl("/data#$", rel) && is.null(l$inherited)
+    })
+    if (is.null(data_link)) return(NULL) # if no data for granule, skip it
+    tibble(filename = e$title, url = data_link$href) # build granule title paried with href
+  })
+}
+```
+
+```{r validataion, echo = FALSE, warning = FALSE}
+# Validate a downloaded file ####
+# Checks: (1) size falls within the expected range, and 
+#         (2) the file doesn't start with HTML/XML bytes, which usually means curl saved an error/login page instead of
+#             the real netCDF binary (a classic symptom of auth failing silently rather than curl itself causing the error).
+
+# validation function to apply to download later in 2 places (1) to check if files already exists, (2) check files were downloaded
+validate_download <- function(destfile, min_bytes, max_bytes) {
+  
+  if (!file_exists(destfile)) {
+    return(list(ok = FALSE, reason = "file not created")) # confirm file exists
+  }
+  
+  sz <- file_info(destfile)$size # confirm its not empty
+  
+  if (sz == 0) {
+    return(list(ok = FALSE, reason = "zero-byte file"))
+  }
+  
+  # Look at the first few bytes to check for HTML/XML error pages
+  con <- file(destfile, "rb")
+  header_bytes <- readBin(con, "raw", n = min(200, sz))
+  close(con)
+  header_text <- rawToChar(header_bytes[header_bytes != as.raw(0)], multiple = FALSE) |>
+    tryCatch(error = function(e) "")
+  
+  looks_like_error_page <- grepl("<html|<!DOCTYPE|<?xml|Unauthorized|login",
+                                 header_text, ignore.case = TRUE, useBytes = TRUE)
+  
+  if (looks_like_error_page) {
+    return(list(ok = FALSE, reason = glue("looks like an HTML/XML error page ({sz} bytes) - likely an auth failure")))
+  }
+  
+  if (sz < min_bytes || sz > max_bytes) { # confirm file is within expected size range
+    return(list(ok = FALSE, reason = glue("size {round(sz/1024, 1)} KB outside expected {round(min_bytes/1024)}-{round(max_bytes/1024)} KB range")))
+  }
+  
+  list(ok = TRUE, reason = "ok")
+}
+```
+
+```{r filter_cmr, warning = FALSE}
+# Query CMR and filter  results to remove monthly summary files 
+# Fetch granule list for the whole range in one shot ####
+
+granules <- get_granule_urls(collection_concept_id,
+                             min(dates_to_download), max(dates_to_download),
+                             granule_pattern)
+
+# Filter out monthly-average files (6-digit YYYYMM filenames), keeping only
+# daily granules (8-digit YYYYMMDD) - both match the *N25km* wildcard, but
+# the monthly-average file isn't a per-day observation.
+n_before_daily_filter <- nrow(granules)
+granules <- granules |> dplyr::filter(grepl("_[0-9]{8}_v[0-9.]+\\.nc$", filename))
+n_monthly_excluded <- n_before_daily_filter - nrow(granules)
+if (n_monthly_excluded > 0) {
+  cat(glue("Excluded {n_monthly_excluded} monthly-average file(s) from results.\n"))
+}
+
+cat(glue("CMR returned {nrow(granules)} daily granule(s) matching '{granule_pattern}'.\n"))
+```
+
+```{r check_availability, warning = FALSE}
+# Check for requested dates with no corresponding granule in CMR ####
+# This catches dates for which source data has not yet been published by
+# NSIDC (e.g. very recent or future dates), which is NOT a download failure
+# and would otherwise be invisible to the file-count/validation checks below,
+# since files_expected is based only on what CMR actually returned.
+
+granule_dates <- as.Date(regmatches(granules$filename, regexpr("[0-9]{8}", granules$filename)), format = "%Y%m%d")
+missing_dates <- as.Date(setdiff(as.numeric(dates_to_download), as.numeric(granule_dates)), origin = "1970-01-01")
+n_missing <- length(missing_dates)
+
+if (n_missing > 0) {
+  cat(glue("{n_missing} of {length(dates_to_download)} requested date(s) have no matching granule in CMR ",
+           "(data likely not yet published for these dates):\n"))
+  print(missing_dates)
+} else {
+  cat(glue("All {length(dates_to_download)} requested date(s) have a matching granule available in CMR.\n"))
+}
+```
+
+If any dates are listed above, NSIDC has not yet published sea ice data for them (e.g. very recent dates). 
+
+```{r download, warning = FALSE}
+# Download loop ####
+
+files_expected <- nrow(granules)
+results <- vector("character", files_expected)
+validation_notes <- vector("character", files_expected)
+
+for (i in seq_len(files_expected)) {
+  
+  filename <- granules$filename[i]
+  url      <- granules$url[i]
+  destfile <- file.path(save_dir, filename)
+  
+  if (file_exists(destfile) && file_info(destfile)$size > 0) {
+    v <- validate_download(destfile, min_expected_bytes, max_expected_bytes)
+    if (v$ok) {
+      cat(glue("⏩ Already exists (valid): {filename}\n"))
+      results[i] <- "exists_valid"
+    } else {
+      cat(glue("⚠️  Already exists but FAILED validation ({v$reason}): {filename}\n"))
+      results[i] <- "exists_invalid"
+    }
+    validation_notes[i] <- v$reason
+    next
+  }
+  
+  if (nzchar(edl_token)) {
+    curl_cmd <- glue(
+      "curl -L -H \"Authorization: Bearer {edl_token}\" -o \"{destfile}\" \"{url}\""
+    )
+  } else {
+    curl_cmd <- glue(
+      "curl --ssl-no-revoke --netrc-file \"{netrc_path}\" -L -c cookies.txt -b cookies.txt -o \"{destfile}\" \"{url}\""
+    )
+  }
+  
+  result <- system(curl_cmd)
+  v <- validate_download(destfile, min_expected_bytes, max_expected_bytes)
+  validation_notes[i] <- v$reason
+  
+  if (v$ok) {
+    cat(glue("Downloaded & validated: {filename}\n"))
+    results[i] <- "downloaded_valid"
+  } else {
+    cat(glue("⚠️  Downloaded but FAILED validation ({v$reason}): {filename}\n"))
+    results[i] <- "downloaded_invalid"
+  }
+  
+  Sys.sleep(2)
+}
+```
+
+```{r, sum_download, warning = FALSE}
+# Summary ####
+
+files_actual <- length(list.files(save_dir, pattern = "N25km"))
+
+summary_tbl <- tibble(filename = granules$filename, status = results, note = validation_notes)
+summary_tbl
+
+n_valid   <- sum(results %in% c("exists_valid", "downloaded_valid"))
+n_invalid <- sum(results %in% c("exists_invalid", "downloaded_invalid"))
+
+cat(glue("\n--- Summary ---\n"))
+cat(glue("Expected: {files_expected}, Present in dir: {files_actual}\n"))
+cat(glue("Valid: {n_valid}, Failed validation: {n_invalid}\n"))
+cat(glue("Requested dates with no CMR granule available (not yet published): {n_missing}\n")) # surfaces data-availability gaps separately from download/validation failures
+
+if (n_invalid > 0) {
+  cat("\nFiles that failed validation (likely auth issues - check these first):\n")
+  print(summary_tbl |> dplyr::filter(status %in% c("exists_invalid", "downloaded_invalid")))
+}
+
+if (n_missing > 0) {
+  cat("\nRequested dates with no matching CMR granule (data likely not yet published):\n")
+  print(missing_dates)
+}
+
+check_it <- if (files_expected != files_actual || n_invalid > 0 || n_missing > 0) {
+  "Issues detected - see summary above."
+} else {
+  "All files present and passed validation."
+}
+
+cat(glue("\n{check_it}\n"))
+```
+
+## Outputs
+
+Running this script produces the following:
+
+- **A download directory** at `r save_dir`, containing one netCDF (`.nc`) file for each daily data set (granule) that CMR reported as available for the requested date range and hemisphere.
+- **`granules`**: a table of every daily granule (filename and download URL) that CMR reported as available, after excluding the monthly-average summary file.
+- **`missing_dates`**: any requested dates for which CMR had no matching granule at all, typically due to NSIDC processing/publication delay. 
+- **`summary_tbl`**: a per-file record of whether each file already existed, was newly downloaded, and whether it passed validation (file size and content checks).
+- **`check_it`**: a pass/fail message summarizing three conditions that all must be true for the result to read "All files present and passed validation": (a) the number of files on disk matches the number CMR reported as available, (b) every downloaded file passed validation, and (c) no requested dates were missing from CMR entirely. 
+
+A total of `r files_expected` file(s) were available from CMR and should have been downloaded. A total of `r files_actual` file(s) were actually found in the save directory. `r n_missing` of the `r length(dates_to_download)` requested date(s) had no data available from CMR. `r check_it`.
+
+## Manual download instructions
+
+Use Earthdata Search in a browser: https://search.earthdata.nasa.gov/ Log in manually with your Earthdata credentials. Search for: Bootstrap Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS V004 Filter by date range (e.g., 01 Nov 2024 – 30 Apr 2025). Filter Granule ID to get only northern hemisphere with: N25km Select Download Now and then use the Earthdata Download API to download the selected files.
+
+## Reference
+ Comiso, J. C. (2023). Bootstrap Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS. (NSIDC-0079, Version 4). [Data Set]. 
+ Boulder, Colorado USA. NASA National Snow and Ice Data Center Distributed Active Archive Center. 
+ https://doi.org/10.5067/X5LG68MH013O. [time series of interest: 01 Nov 1992 to 31 Dec 2024]. Date Accessed 2025-09-02.
+ Data set id: NSIDC-0079
+ DOI: 10.5067/X5LG68MH013O
+ 
