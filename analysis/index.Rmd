@@ -11,3 +11,5 @@ editor_options:
 * [Convert netCDF to geotif](01_convert_daily_netcdf_bootstrap_to_geotif.html)
 * [Extract pixels](02_extract_specEider_winterIce_bootstrap_sic_geotif.html)
 * [Sea Ice Concentration Data summaries](04_summarize_daily_min_bs3_sic.html)
+
+* [GitHub Repository](https://github.com/DJRIZZ/sea_ice_bs_core)
