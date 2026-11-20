@@ -534,15 +534,15 @@ project makes it easier to run your code on other machines.</p>
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreee574220987ad8ffa51481ad3f85c52a70b7f5156targetblanke574220a">
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreeea2172dadb44090ab1bb807307927ce1dd7e528dtargetblankea2172da">
 <span class="glyphicon glyphicon-ok text-success"
 aria-hidden="true"></span> <strong>Repository version:</strong>
-<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/e574220987ad8ffa51481ad3f85c52a70b7f5156" target="_blank">e574220</a>
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/ea2172dadb44090ab1bb807307927ce1dd7e528d" target="_blank">ea2172d</a>
 </a>
 </p>
 </div>
 <div
-id="strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreee574220987ad8ffa51481ad3f85c52a70b7f5156targetblanke574220a"
+id="strongRepositoryversionstrongahrefhttpsgithubcomDJRIZZseaicebscoretreeea2172dadb44090ab1bb807307927ce1dd7e528dtargetblankea2172da"
 class="panel-collapse collapse">
 <div class="panel-body">
 <p>
@@ -552,7 +552,7 @@ reproducibility.
 </p>
 <p>
 The results in this page were generated with repository version
-<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/e574220987ad8ffa51481ad3f85c52a70b7f5156" target="_blank">e574220</a>.
+<a href="https://github.com/DJRIZZ/sea_ice_bs_core/tree/ea2172dadb44090ab1bb807307927ce1dd7e528d" target="_blank">ea2172d</a>.
 See the <em>Past versions</em> tab to see a history of the changes made
 to the R Markdown and HTML files.
 </p>
@@ -581,6 +581,7 @@ Ignored files:
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_1992-2025/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_geotif_temp/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19791101_19920430/
+    Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921101_19921102/
     Ignored:    data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231_temp/
     Ignored:    library/
     Ignored:    output/archive/
@@ -712,6 +713,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/DJRIZZ/sea_ice_bs_core/6d694a39e7963bd1829dc33e79e1c590e64288e2/docs/00_download_seaice_data_from_nsidc.html" target="_blank">6d694a3</a>
+</td>
+<td>
+DJRIZZ
+</td>
+<td>
+2026-11-20
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -1022,7 +1040,6 @@ for (i in seq_len(files_expected)) {
   
   Sys.sleep(2)
 }</code></pre>
-<pre><code>Progress: 2/2 files processed.</code></pre>
 <pre class="r"><code># Check local directory completeness, independent of CMR ####
 # This is deliberately independent of granules/files_expected/missing_dates
 # above: CMR metadata can be incomplete or lag behind actual data
@@ -1064,10 +1081,10 @@ files_actual &lt;- length(list.files(save_dir, pattern = &quot;N25km&quot;))
 summary_tbl &lt;- tibble(filename = granules$filename, status = results, note = validation_notes)
 summary_tbl</code></pre>
 <pre><code># A tibble: 2 × 3
-  filename                                   status           note 
-  &lt;chr&gt;                                      &lt;chr&gt;            &lt;chr&gt;
-1 NSIDC0079_SEAICE_PS_N25km_19921102_v4.0.nc downloaded_valid ok   
-2 NSIDC0079_SEAICE_PS_N25km_19921101_v4.0.nc downloaded_valid ok   </code></pre>
+  filename                                   status       note 
+  &lt;chr&gt;                                      &lt;chr&gt;        &lt;chr&gt;
+1 NSIDC0079_SEAICE_PS_N25km_19921102_v4.0.nc exists_valid ok   
+2 NSIDC0079_SEAICE_PS_N25km_19921101_v4.0.nc exists_valid ok   </code></pre>
 <pre class="r"><code>n_valid   &lt;- sum(results %in% c(&quot;exists_valid&quot;, &quot;downloaded_valid&quot;))
 n_invalid &lt;- sum(results %in% c(&quot;exists_invalid&quot;, &quot;downloaded_invalid&quot;))
 
