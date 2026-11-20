@@ -11,20 +11,24 @@ editor_options:
 # 00_download_seaice_data_from_nsidc.Rmd
 
 knitr::opts_chunk$set(echo = TRUE)
+# sessionInfo()
+# R version 4.6.1 (2026-06-24 ucrt)
+# Platform: x86_64-w64-mingw32/x64
+# Running under: Windows 11 x64 (build 26200)
 # got packages?
-library(httr2) # build and send the HTTP request to the CMR API, and parse its JSON response
-library(glue) # file name and URL creation using referenced parts of dates
-library(fs) # directory operations which were causing problems when using the base R version, not sure why
-library(purrr) # map_dfr() and detect() to turn CMR's nested granule list into a flat table
-library(tibble) # construct the granules and summary_tbl data frames
-library(lubridate) # month() to filter dates down to winter_months
-library(dplyr) # filter() to remove monthly-average files from the granule list
+library(httr2) # build and send the HTTP request to NASA's Common Metadata Repository (CMR) API, and parse its JSON response (httr2_1.2.2)
+library(glue) # file name and URL creation using referenced parts of dates, less verbose than paste (glue_1.8.1)
+library(fs) # directory operations which were causing problems when using the base R version, not sure why (fs_2.1.0)
+library(purrr) # map_dfr() and detect() functions to turn CMR's nested granule list into a flat table (purrr_1.2.2)
+library(tibble) # construct the granules and summary_tbl data frames (tibble_3.3.1)
+library(lubridate) # month() to filter dates down to winter_months (lubridate_1.9.5)
+library(dplyr) # filter() to remove monthly-average files from the granule list (dplyr_1.2.1)
 ```
 
 ## Update 2026
-Bootstrap sea ice concentrations from Nimbus-7 SMMR and DMSP SSM/I satellites ended in December 2025 when the Department of Defense stopped processing and delivering satellite imagery data to the NSIDC/public, as per this NSIDC notice: https://nsidc.org/data/user-resources/data-announcements/user-notice-ssmis-data-processing-end-30-june-2025
+Bootstrap sea ice concentrations from Nimbus-7 SMMR and DMSP SSM/I satellites ended in December 2025 when the Department of Defense (DOD) stopped processing and delivering satellite imagery data to the NSIDC/public, as per this NSIDC notice: https://nsidc.org/data/user-resources/data-announcements/user-notice-ssmis-data-processing-end-30-june-2025
 
-Unless the DOD re-establishes that data stream, another source of sea ice concentration data will be required for assess sea ice cover data in the spectacled eider sea ice index area. The best alternative is likely *NOAA/NSIDC Climate Data Record of Passive Microwave Sea Ice Concentration, Version 6* (https://nsidc.org/data/g02202/versions/6).
+Unless the DOD re-establishes that data stream, another source of sea ice concentration data will be required for assess sea ice cover data in the spectacled eider sea ice index area. The best alternative may be *NOAA/NSIDC Climate Data Record of Passive Microwave Sea Ice Concentration, Version 6* (https://nsidc.org/data/g02202/versions/6).
 
 ## Sea Ice Data: Download
 
@@ -64,7 +68,7 @@ The R console displays messages indicating a successful download, a failed downl
 collection_concept_id <- "C3177837864-NSIDC_CPRD"  # confirmed from Earthdata Search URL
 
 start_date <- as.Date("1992-11-01")
-end_date   <- as.Date("1992-11-05")
+end_date   <- as.Date("1992-11-02")
 
 winter_months <- c(11, 12, 1, 2, 3, 4) # winter as defined in Christie et al. 2018 & Flint et al. 2016; Petersen & Douglas 2004 define it differently
 
@@ -99,7 +103,7 @@ This R script uses the following inputs:
 - **Months included**: `r winter_months` (winter months relevant to spectacled eiders; `r length(dates_to_download)` individual dates fall within this range and month filter)
 - **Hemisphere filter**: `r granule_pattern` (northern hemisphere only)
 - **Authentication**: Earthdata Login, via bearer token (if the `EARTHDATA_TOKEN` environment variable is set) or a `.netrc` file at `r netrc_path`
-- **Expected file size range**: `r min_expected_bytes / 1024` KB to `r max_expected_bytes / 1024` KB, used to flag likely authentication failures or corrupted downloads
+- **Expected file size range**: `r min_expected_bytes / 1024` KB to `r max_expected_bytes / 1024` KB, used to flag authentication failures or corrupted downloads
 
 **Save directory**: files are downloaded to the following folder, which is created automatically if it does not already exist, and is named using the start and end dates above:
 
@@ -114,21 +118,44 @@ get_granule_urls <- function(collection_concept_id, start_date, end_date, granul
   temporal_str <- glue(
     "{format(start_date, '%Y-%m-%dT00:00:00Z')},{format(end_date, '%Y-%m-%dT23:59:59Z')}" # set date to ISO 8601 format
   )
- # construct HTTP request 
-  req <- request("https://cmr.earthdata.nasa.gov/search/granules.json") |>
-    req_url_query(
-      collection_concept_id = collection_concept_id, # which dataset to search within
-      temporal               = temporal_str, # date range string
-      page_size              = 2000, # up to 2000 results in one response
-      sort_key               = "-start_date",
-      "options[readable_granule_name][pattern]" = "true" # newest-first
-    ) |>
-    req_url_query(`readable_granule_name[]` = granule_pattern) # filter value (*N25km*), matched against each granule name
-  
-  # Send request and parse the response
-  resp <- req_perform(req)
-  parsed <- resp_body_json(resp, simplifyVector = FALSE)
-  entries <- parsed$feed$entry
+
+  page_size <- 2000 # max results CMR returns per page
+  page_num <- 1
+  all_entries <- list()
+
+  # Loop through all pages of results, since CMR truncates to page_size per
+  # request and a 32+ year date range can match more granules than
+  # a single page holds. Without this loop, only the first page_size
+  # granules (the most recent, given sort_key = "-start_date") is
+  # returned, dropping all older dates.
+  repeat {
+    # construct HTTP request 
+    req <- request("https://cmr.earthdata.nasa.gov/search/granules.json") |>
+      req_url_query(
+        collection_concept_id = collection_concept_id, # which dataset to search within
+        temporal               = temporal_str, # date range string
+        page_size              = page_size, # up to 2000 results in one response
+        page_num               = page_num, # current page of results being fetched
+        sort_key               = "-start_date",
+        "options[readable_granule_name][pattern]" = "true" # newest-first
+      ) |>
+      req_url_query(`readable_granule_name[]` = granule_pattern) # filter value (*N25km*), matched against each granule name
+    
+    # Send request and parse the response
+    resp <- req_perform(req)
+    parsed <- resp_body_json(resp, simplifyVector = FALSE)
+    entries <- parsed$feed$entry
+
+    all_entries <- c(all_entries, entries)
+
+    # Stop once a page comes back with fewer than page_size entries
+    # which means the last page was reached. An empty first page means no
+    # granules matched at all.
+    if (length(entries) < page_size) break
+    page_num <- page_num + 1
+  }
+
+  entries <- all_entries
   
   # Handle missing data warning message
   if (length(entries) == 0) {
@@ -179,7 +206,7 @@ validate_download <- function(destfile, min_bytes, max_bytes) {
                                  header_text, ignore.case = TRUE, useBytes = TRUE)
   
   if (looks_like_error_page) {
-    return(list(ok = FALSE, reason = glue("looks like an HTML/XML error page ({sz} bytes) - likely an auth failure")))
+    return(list(ok = FALSE, reason = glue("looks like an HTML/XML error page ({sz} bytes) auth failure")))
   }
   
   if (sz < min_bytes || sz > max_bytes) { # confirm file is within expected size range
@@ -187,6 +214,38 @@ validate_download <- function(destfile, min_bytes, max_bytes) {
   }
   
   list(ok = TRUE, reason = "ok")
+}
+
+# Summarize a vector of dates to collapses consecutive dates into ranges (e.g.
+# "1992-11-01 to 1992-11-30 (30 days)"), which is shorter
+# and more informative. It shows whether gaps are clustered
+# or scattered, rather than having to scan every date.
+summarize_date_ranges <- function(dates, max_ranges_shown = 30) {
+
+  if (length(dates) == 0) return(invisible(NULL))
+
+  dates <- sort(dates)
+  gap <- c(TRUE, diff(dates) > 1) # TRUE marks the start of a new contiguous run
+  group_id <- cumsum(gap)
+
+  ranges <- tapply(dates, group_id, function(d) {
+    list(start = min(d), end = max(d), n = length(d))
+  })
+
+  range_lines <- vapply(ranges, function(r) {
+    if (r$start == r$end) {
+      glue("{r$start} (1 day)")
+    } else {
+      glue("{r$start} to {r$end} ({r$n} days)")
+    }
+  }, character(1))
+
+  n_total_ranges <- length(range_lines)
+  shown <- head(range_lines, max_ranges_shown)
+  for (line in shown) cat(" ", line, "\n")
+  if (n_total_ranges > max_ranges_shown) {
+    cat(glue("  ... and {n_total_ranges - max_ranges_shown} more range(s) not shown.\n"))
+  }
 }
 ```
 
@@ -199,24 +258,44 @@ granules <- get_granule_urls(collection_concept_id,
                              granule_pattern)
 
 # Filter out monthly-average files (6-digit YYYYMM filenames), keeping only
-# daily granules (8-digit YYYYMMDD) - both match the *N25km* wildcard, but
-# the monthly-average file isn't a per-day observation.
+# daily granules (8-digit YYYYMMDD) because both match the *N25km* wildcard, but
+# the monthly-average file is not a per-day observation.
+# NB: some 2025 granule titles carry a weird suffix after ".nc" (e.g.
+# "..._v4.0.nc_nCVfGAdN", likely a reprocessing/staging tag applied by
+# NSIDC), so this regex intentionally does NOT anchor to the end of the
+# string ($), which would exclude those valid daily
+# granules along with the monthly-average files.
 n_before_daily_filter <- nrow(granules)
-granules <- granules |> dplyr::filter(grepl("_[0-9]{8}_v[0-9.]+\\.nc$", filename))
+granules <- granules |> dplyr::filter(grepl("_[0-9]{8}_v[0-9.]+\\.nc", filename))
 n_monthly_excluded <- n_before_daily_filter - nrow(granules)
 if (n_monthly_excluded > 0) {
   cat(glue("Excluded {n_monthly_excluded} monthly-average file(s) from results.\n"))
 }
 
 cat(glue("CMR returned {nrow(granules)} daily granule(s) matching '{granule_pattern}'.\n"))
+
+# Filter out non-winter-month granules ####
+# The CMR query above spans a single continuous range from the earliest to
+# latest date in dates_to_download (e.g. Nov 1992 through Apr 2025), which
+# necessarily includes every month in between, not just winter_months - CMR
+# can't query winter_months directly. 
+# This step applies that filter after the fact, using the same date-from-filename
+# extraction pattern used in check_availability below.
+n_before_month_filter <- nrow(granules)
+granule_month <- as.numeric(substr(regmatches(granules$filename, regexpr("[0-9]{8}", granules$filename)), 5, 6))
+granules <- granules[granule_month %in% winter_months, ]
+n_offseason_excluded <- n_before_month_filter - nrow(granules)
+if (n_offseason_excluded > 0) {
+  cat(glue("Excluded {n_offseason_excluded} off-season (non-winter-month) granule(s) from results.\n"))
+}
+
+cat(glue("{nrow(granules)} winter-month daily granule(s) remain and will be downloaded below.\n"))
 ```
 
 ```{r check_availability, warning = FALSE}
 # Check for requested dates with no corresponding granule in CMR ####
-# This catches dates for which source data has not yet been published by
-# NSIDC (e.g. very recent or future dates), which is NOT a download failure
-# and would otherwise be invisible to the file-count/validation checks below,
-# since files_expected is based only on what CMR actually returned.
+# This catches dates for which source data has not been published by
+# NSIDC (e.g. very recent dates).
 
 granule_dates <- as.Date(regmatches(granules$filename, regexpr("[0-9]{8}", granules$filename)), format = "%Y%m%d")
 missing_dates <- as.Date(setdiff(as.numeric(dates_to_download), as.numeric(granule_dates)), origin = "1970-01-01")
@@ -225,7 +304,7 @@ n_missing <- length(missing_dates)
 if (n_missing > 0) {
   cat(glue("{n_missing} of {length(dates_to_download)} requested date(s) have no matching granule in CMR ",
            "(data likely not yet published for these dates):\n"))
-  print(missing_dates)
+  summarize_date_ranges(missing_dates)
 } else {
   cat(glue("All {length(dates_to_download)} requested date(s) have a matching granule available in CMR.\n"))
 }
@@ -248,13 +327,10 @@ for (i in seq_len(files_expected)) {
   
   if (file_exists(destfile) && file_info(destfile)$size > 0) {
     v <- validate_download(destfile, min_expected_bytes, max_expected_bytes)
-    if (v$ok) {
-      cat(glue("⏩ Already exists (valid): {filename}\n"))
-      results[i] <- "exists_valid"
-    } else {
+    if (!v$ok) {
       cat(glue("⚠️  Already exists but FAILED validation ({v$reason}): {filename}\n"))
-      results[i] <- "exists_invalid"
     }
+    results[i] <- if (v$ok) "exists_valid" else "exists_invalid"
     validation_notes[i] <- v$reason
     next
   }
@@ -274,14 +350,57 @@ for (i in seq_len(files_expected)) {
   validation_notes[i] <- v$reason
   
   if (v$ok) {
-    cat(glue("Downloaded & validated: {filename}\n"))
     results[i] <- "downloaded_valid"
   } else {
     cat(glue("⚠️  Downloaded but FAILED validation ({v$reason}): {filename}\n"))
     results[i] <- "downloaded_invalid"
   }
+
+  # Print progress every 50 files (rather than one line per file) to avoid
+  # flooding the console/knit output when the date range is long. Failures above
+  # are still printed immediately regardless of this interval, and the
+  # full per-file outcome is captured in summary_tbl either way.
+  if (i %% 50 == 0 || i == files_expected) {
+    cat(glue("Progress: {i}/{files_expected} files processed.\n"))
+  }
   
   Sys.sleep(2)
+}
+```
+
+```{r check_local_completeness, warning = FALSE}
+# Check local directory completeness, independent of CMR ####
+# This is deliberately independent of granules/files_expected/missing_dates
+# above: CMR metadata can be incomplete or lag behind actual data
+# availability (e.g. recently-published data that CMR has not indexed yet,
+# even though it is downloadable via the manual Earthdata Search interface).
+# This checks: 
+# for every date in the originally requested range (dates_to_download), does a file with
+# the expected name actually exist in save_dir? This is true
+# regardless of whether that file was just downloaded by this script, was
+# already present from a prior run, or was added manually.
+
+expected_filenames <- glue("NSIDC0079_SEAICE_PS_N25km_{format(dates_to_download, '%Y%m%d')}_v4.0.nc")
+local_file_exists  <- file_exists(file.path(save_dir, expected_filenames))
+
+n_local_present <- sum(local_file_exists)
+n_local_missing <- sum(!local_file_exists)
+locally_missing_dates <- dates_to_download[!local_file_exists]
+
+cat(glue("\n--- Local Directory Completeness Check (independent of CMR) ---\n"))
+cat(glue("{n_local_present} of {length(dates_to_download)} expected file(s) are present in {save_dir}.\n"))
+
+if (n_local_missing > 0) {
+  cat(glue("{n_local_missing} expected file(s) are NOT present locally:\n"))
+  summarize_date_ranges(locally_missing_dates)
+} else {
+  cat("All expected files for the requested date range are present locally.\n")
+}
+
+check_it_local <- if (n_local_missing == 0) {
+  "All files for the requested date range are present in the local directory."
+} else {
+  glue("{n_local_missing} file(s) for the requested date range are missing from the local directory.")
 }
 ```
 
@@ -299,7 +418,7 @@ n_invalid <- sum(results %in% c("exists_invalid", "downloaded_invalid"))
 cat(glue("\n--- Summary ---\n"))
 cat(glue("Expected: {files_expected}, Present in dir: {files_actual}\n"))
 cat(glue("Valid: {n_valid}, Failed validation: {n_invalid}\n"))
-cat(glue("Requested dates with no CMR granule available (not yet published): {n_missing}\n")) # surfaces data-availability gaps separately from download/validation failures
+cat(glue("Requested dates with no CMR granule available (not yet published): {n_missing}\n")) # ids data-availability gaps separately from download/validation failures
 
 if (n_invalid > 0) {
   cat("\nFiles that failed validation (likely auth issues - check these first):\n")
@@ -308,7 +427,7 @@ if (n_invalid > 0) {
 
 if (n_missing > 0) {
   cat("\nRequested dates with no matching CMR granule (data likely not yet published):\n")
-  print(missing_dates)
+  summarize_date_ranges(missing_dates)
 }
 
 check_it <- if (files_expected != files_actual || n_invalid > 0 || n_missing > 0) {
@@ -328,9 +447,12 @@ Running this script produces the following:
 - **`granules`**: a table of every daily granule (filename and download URL) that CMR reported as available, after excluding the monthly-average summary file.
 - **`missing_dates`**: any requested dates for which CMR had no matching granule at all, typically due to NSIDC processing/publication delay. 
 - **`summary_tbl`**: a per-file record of whether each file already existed, was newly downloaded, and whether it passed validation (file size and content checks).
-- **`check_it`**: a pass/fail message summarizing three conditions that all must be true for the result to read "All files present and passed validation": (a) the number of files on disk matches the number CMR reported as available, (b) every downloaded file passed validation, and (c) no requested dates were missing from CMR entirely. 
+- **`check_it`**: a pass/fail message summarizing three conditions that all must be true for the result to read "All files present and passed validation": (a) the number of files on disk matches the number CMR reported as available, (b) every downloaded file passed validation, and (c) no requested dates were missing from CMR entirely.
+- **`check_it_local`**: an independent pass/fail message checking only whether a correctly-named file exists locally for every date in the requested range, regardless of what CMR reported. This can read "All files present" even when `check_it` reports issues, if CMR's metadata is incomplete or stale relative to actual data availability (e.g. recently-published data), in that situation, the data itself is not missing, only CMR's record of it. 
 
-A total of `r files_expected` file(s) were available from CMR and should have been downloaded. A total of `r files_actual` file(s) were actually found in the save directory. `r n_missing` of the `r length(dates_to_download)` requested date(s) had no data available from CMR. `r check_it`.
+A total of `r files_expected` file(s) were available from CMR and should have been downloaded. A total of `r files_actual` file(s) were actually found in the save directory. `r n_missing` of the `r length(dates_to_download)` requested date(s) had no data available from CMR. `r check_it`
+
+**Local directory completeness** (independent of CMR's metadata): `r check_it_local` This check is based solely on whether a correctly-named file exists in the save directory for every date in the requested range - it will read "All files present" even if CMR's own records are incomplete or lag behind actual data availability, as can happen with recently-published data.
 
 ## Manual download instructions
 
@@ -343,3 +465,6 @@ Use Earthdata Search in a browser: https://search.earthdata.nasa.gov/ Log in man
  Data set id: NSIDC-0079
  DOI: 10.5067/X5LG68MH013O
  
+```{r session-info, echo=FALSE, comment=""}
+sessionInfo()
+```                    
