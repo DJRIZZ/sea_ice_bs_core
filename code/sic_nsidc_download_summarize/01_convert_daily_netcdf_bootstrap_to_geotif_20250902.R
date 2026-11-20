@@ -7,8 +7,8 @@ library(terra) # current functionality of deprecated geos package
 library(progress) # progress bar package for monitoring for loop through files
 
 # Define input and output directories (run as RStudio project)
-input_dir <- "data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231"
-dir.exists("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231")
+input_dir <- "data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19791101_19920430"
+dir.exists("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20241101_20250430")
 output_dir <- "data/sourced_data/nsidc_sic_v4/sic_geotif"
 dir.exists("data/sourced_data/nsidc_sic_v4/sic_geotif")
 
@@ -36,11 +36,11 @@ for (file in nc_files) { # loop through each daily NetCDF file
   
   tryCatch({ # error catching function for the following steps (base R function)
     r <- rast(file)  # load as raster, NB "varname" option not needed
-  if (is.na(crs(r))) crs(r) <- "EPSG:3411"  # assign CRS (if not already defined in file)
+  if (crs(r) == "") crs(r) <- "EPSG:3411"  # assign CRS (if not already defined in file)
   r[r > 1000] <- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
   writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
   }, error = function(e){ # if error occurs
-    message(sprintf(" [ERROR] Skipping %s: %s, basename(file)", e$message)) # print this message
+    message(sprintf(" [ERROR] Skipping %s: %s", basename(file), e$message)) # print this message
     error_log <<- c(error_log, paste(basename(file), ":", e$message)) # append the initialized error log outside loop with '<<-'
   })
 }
@@ -52,5 +52,6 @@ if(length(error_log) > 0) { # if there are errors
 }
 
 # check that number of input *.nc files matches number of output *.tif files
-length(list.files("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_19921130_20241231"))
+length(list.files("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_20241101_20250430"))
 length(list.files("data/sourced_data/nsidc_sic_v4/sic_geotif"))
+

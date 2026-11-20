@@ -8,25 +8,31 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
+# 02_extract_specEider_winterIce_bootstrap_sic_geotif.Rmd
+# sessionInfo()
+# R version 4.6.1 (2026-06-24 ucrt)
+# Platform: x86_64-w64-mingw32/x64
+# Running under: Windows 11 x64 (build 26200)
 knitr::opts_chunk$set(echo = TRUE)
 library(sf) # spatial transform
 library(terra) # work with rasters
 library(dplyr) # wrangle data frames
 library(progress) # create a progress bar to monitor the for loop
-library(fs) # directory path handling (path_abs, dir_exists), consistent with scripts 00 and 01
+library(fs) # directory path handling (path_abs, dir_exists), consistent with scripts 00_ and 01_
+library(glue) # build file paths/names from the start_date/end_date parameters below
 ```
 
 ## Sea Ice Data: Extraction
 
 This script extracts sea ice concentration (sic) data from the 16 pixels (each 25 km x 25 km) in the northern Bering Sea identified in Petersen and Douglas (2004) as spectacled eider winter range, based on satellite transmitter locations from the 1990s. These 16 pixels are used as an index of sea ice conditions across the broader area of the Bering Sea used by spectacled eiders, following Petersen and Douglas (2004), Flint et al. (2016), Christie et al. (2018), Dunham et al. (2021), and Friendly et al. (2025).
 
-The output is a daily time series of sic (percent cover, 0 to 100) at each of the 16 pixels, for each winter (01 Nov to 30 Apr) day.
+The output is a daily time series of sic (percent cover, 0 to 100) at each of the 16 pixels, for each winter (01 Nov to 30 Apr) day falling within the requested date range.
 
 This script was adapted from code posted by A. Fischbach, modified by G. Durner in 2020, and updated by D. Rizzolo in 2020.
 
 Data are SMMR and SSM/I Passive Microwave SIC from the Bootstrap Algorithm, version 4.0 (released November 2023):
 
-This script processes one winter of data (most recently available) and appends that new data to the existing data set spanning all winters processed to date.
+This script processes all GeoTIFFs within a specified date range (`start_date` to `end_date`, set below) and appends that data to the existing cumulative data set spanning all previously processed winters, if one exists.
 
 ## Work flow
 
@@ -34,14 +40,66 @@ This is the third script in a four-script workflow. The raw data are downloaded 
 
 ### Inputs
 
-- **Pixel coordinate reference file**: `library/specEider_winter_pixel_samples_xy_geo_SAVE.csv` - longitude/latitude (WGS84) coordinates of the 16 spectacled eider winter-range pixels.
-- **Input directory of daily GeoTIFFs**: `data/sourced_data/nsidc_sic_v4/sic_geotif/` (the same directory produced as output by `01_convert_netcdf_to_geotif.Rmd`) - one file per day, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif`. The file list is filtered to `.tif` files only, to avoid picking up any sidecar/auxiliary files that may be written alongside the GeoTIFFs. The date and month are parsed from fixed character positions within this filename (positions 27-34 for the full date, 31-32 for the month), so input files must follow this exact naming convention and length for those extractions to return the correct characters.
-- **Existing cumulative output file** (read in during the final append step): `output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv` - the previously compiled multi-year record that this script appends to.
+- **Pixel coordinate reference file**: `library/specEider_winter_pixel_samples_xy_geo_SAVE.csv` - longitude/latitude (WGS84) coordinates of the 16 spectacled eider winter-range pixels. This is a reference file, that isn't changed and is unrelated to the date range below.
+- **Input directory of daily GeoTIFFs**: `data/sourced_data/nsidc_sic_v4/sic_geotif/sic_geotif_[start_date]_[end_date]/` - versioned by date range to match the output of `01_convert_netcdf_to_geotif.Rmd`, using the same `start_date`/`end_date` parameters defined below. One file per day, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif`. The file list is filtered to `.tif` files only, to avoid picking up ancillary files that get written alongside the GeoTIFFs. The date and month are parsed from fixed character positions within this filename (positions 27-34 for the full date, 31-32 for the month), so input files must follow this exact naming convention and length for those extractions to return the correct characters.
+- **`start_date`/`end_date` parameters** (defined in `define_params` below): scope which GeoTIFFs in the input directory are actually extracted - a file is only processed if its embedded date falls within this range (inclusive) and its month is Nov-Apr. For the complete available time series, use `start_date = "1992-11-01"` and `end_date = "2025-04-30"`.
+- **`previous_cumulative_end_date` parameter**: the ending date of an existing cumulative output file, if one exists, that this run should load and extend. If no file exists at the resulting path, this script treats the current run's output as the starting point for a new cumulative file, rather than causing an error
+- **`overwrite_existing` parameter**: controls what happens if an output file this script would write already exists at that exact path (see "Outputs" and the `safe_write_csv` helper below for details).
 
 Spatial data references used in this script:
 
 - EPSG:3411 - NSIDC Sea Ice Polar Stereographic North (the projection of the sea ice GeoTIFFs; assigned during conversion in `01_convert_netcdf_to_geotif.Rmd`)
 - EPSG:4326 - WGS 84 Geographic (the projection of the pixel coordinate reference file)
+
+```{r define_params, warning = FALSE}
+# Define analysis parameters ####
+
+start_date <- as.Date("1992-11-01") # earliest date to extract (inclusive)
+end_date   <- as.Date("2025-04-30") # latest date to extract (inclusive)
+
+# Ending date of an existing cumulative output file to load and extend, if one exists.
+# If no file exists at the resulting path (see append_full_dataset below),
+# this output becomes the starting point for a new cumulative file instead.
+previous_cumulative_end_date <- as.Date("2024-04-30")
+
+# Versioned input directory, matching the output path convention used in
+# 01_convert_netcdf_to_geotif.Rmd (same start_date/end_date format)
+geotif_dir <- path_abs(glue("data/sourced_data/nsidc_sic_v4/sic_geotif/sic_geotif_{format(start_date, '%Y%m%d')}_{format(end_date, '%Y%m%d')}"))
+
+# Output directory and naming root for both the single-period and cumulative CSVs
+output_dir <- "output/sic_beringSea_16pixels"
+
+# Set to TRUE to allow overwriting an existing output file (a timestamped backup
+# of the existing file is made automatically first - see safe_write_csv below).
+# Default FALSE: any write that would overwrite an existing file stops with an
+# error instead, so accidental overwrites require a deliberate opt-in.
+overwrite_existing <- FALSE
+```
+
+```{r safe_write_helper, echo = FALSE, warning = FALSE}
+# Write a CSV without silently overwriting an existing file ####
+# If destfile already exists:
+#   - overwrite_existing == FALSE (default): stop with an error, write nothing.
+#   - overwrite_existing == TRUE: rename the existing file aside with a
+#     timestamped ".bak_[timestamp]" suffix, then write the new file in its place.
+# This applies to both output writes in this script (single-period and cumulative).
+
+safe_write_csv <- function(df, destfile, overwrite = overwrite_existing) {
+  if (file_exists(destfile)) {
+    if (!overwrite) {
+      stop(glue(
+        "File already exists and overwrite_existing is FALSE - refusing to overwrite:\n  {destfile}\n",
+        "Set overwrite_existing <- TRUE in define_params to allow this (a timestamped backup will be made automatically)."
+      ))
+    }
+    backup_path <- glue("{destfile}.bak_{format(Sys.time(), '%Y%m%d_%H%M%S')}")
+    file_move(destfile, backup_path)
+    cat(glue("Existing file backed up to: {backup_path}\n"))
+  }
+  write.csv(df, destfile, row.names = FALSE)
+  cat(glue("Saved: {destfile}\n"))
+}
+```
 
 ```{r load_pixel_coords, warning = FALSE}
 # spatial data references used here:
@@ -56,11 +114,10 @@ eider16.ps <- st_transform(eider16.sf, crs = 3411) # Reproject to NSIDC Sea Ice 
 
 ## Extraction
 
-For each daily GeoTIFF in the input directory, this script loads the raster, extracts the sic value at each of the 16 reprojected pixel locations, and appends the result (with date, projected x/y coordinates, and original lon/lat) to a running list of daily data frames. Only files whose parsed month falls within the winter processing window are extracted; all others are skipped. Any file that fails to load or extract is logged to `error_log` and skipped, rather than stopping the whole run.
+For each daily GeoTIFF in the input directory whose embedded date falls within `start_date` to `end_date` and whose month is Nov-Apr, this script loads the raster, extracts the sic value at each of the 16 reprojected pixel locations, and appends the result (with date, projected x/y coordinates, and original lon/lat) to a running list of daily data frames. All other files are skipped. Any file that fails to load or extract is logged to `error_log` and skipped, rather than stopping the whole run.
 
 ```{r list_input_files, warning = FALSE}
 # get a list of the geotif files converted from NetCDF in 01_convert_netcdf_to_geotif.Rmd
-geotif_dir <- path_abs("data/sourced_data/nsidc_sic_v4/sic_geotif/")
 dir_exists(geotif_dir)
 
 tif.list <- as.list(list.files(path = geotif_dir, pattern = "\\.tif$"))
@@ -68,10 +125,9 @@ eider_list <- list() # Initialize list to collect daily data frames
 ```
 
 ```{r extract_loop, warning = FALSE}
-# code applied to all version 4 data from period of spectacled eider mark-resight project: 01 Nov 1992 - 31 Dec 2024 (most recent available data as of Sept 2025)
-# subsequently, apply to each newly released year of data
+# code applied to GeoTIFFs within start_date to end_date (set in define_params above)
 
-# create progress bar
+# create progress bar (works when code is run piece by piece, but not when knitting)
 pb <- progress_bar$new(
   format = "  Converting [:bar] :percent | :current/:total | :filename", # pb layout
   total = length(tif.list), # total files
@@ -84,9 +140,10 @@ error_log <- list() # collect any files that fail to load/extract, with the asso
 # loop through directory of geotif files
 for (f in tif.list) {
   pb$tick(tokens = list(filename = f)) # progress bar by 1 step each file
-  month <- as.numeric(substr(f, 31, 32))  # assign month from file name (example: "NSIDC0079_SEAICE_PS_N25km_20211114_v4.0.tif")
-  # Process only Nov–Apr
-  if (month >= 11 || month <= 4) {
+  file_date <- as.Date(substr(f, 27, 34), format = "%Y%m%d") # parse full date from file name (example: "NSIDC0079_SEAICE_PS_N25km_20211114_v4.0.tif")
+  month <- as.numeric(format(file_date, "%m"))
+  # Process only files within the requested date range, and only Nov-Apr
+  if (!is.na(file_date) && file_date >= start_date && file_date <= end_date && (month >= 11 || month <= 4)) {
     tryCatch({
       # load raster using terra
       filename <- file.path(geotif_dir, f) # assign file name with path
@@ -140,24 +197,34 @@ summary(eider16p$bs_sic_prop)
 
 ## Save output
 
-The `write.csv()` function below names the single-winter output file deriving the year from the first file in `tif.list` and names the file accordingly.
+The single-period output file is named using `start_date` and `end_date`. If a file already exists at the target path, `safe_write_csv()` either refuses to overwrite it (default) or backs it up first, depending on `overwrite_existing`.
 
 ```{r save_output, warning = FALSE}
 # save reprocessed time series
-year<- as.numeric(substr(tif.list[1], 27, 30))
-write.csv(eider16p, paste("output/sic_beringSea_16pixels/", year, "_sic_bootstrapv4_16pixels_01Nov-30Apr.csv", sep=""), row.names = FALSE)                   
+single_period_file <- file.path(output_dir, glue("sic_bootstrapv4_16pixels_{format(start_date, '%Y%m%d')}_{format(end_date, '%Y%m%d')}.csv"))
+safe_write_csv(eider16p, single_period_file)
 ```
 
 ## Append to full multi-year data set
 
-The newly processed winter (`eider16p`) is appended to the existing cumulative record covering 1992-2024, and the combined result is saved as a new file named with the updated ending year.
+The newly processed data (`eider16p`) is appended to the existing cumulative record, if one exists at the path implied by `start_date` and `previous_cumulative_end_date`. If no such file exists (e.g. this is the first run covering the complete series), `eider16p` becomes the full cumulative data set directly. The combined result is saved as a new file named with `start_date` and `end_date`, again using `safe_write_csv()` to avoid silently overwriting a prior cumulative file of the same name.
 
 ```{r append_full_dataset, warning = FALSE}
-# append it to full data set
-# load full data set
-all_previous <- read.csv("output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv")
-# rbind most recent data to full data set
-bind <- rbind.data.frame(all_previous, eider16p)
+# Build path to the existing cumulative file, if one exists ####
+previous_cumulative_file <- file.path(
+  output_dir, "nsidc_sic_summary_v4",
+  glue("sic_bootstrapv4_16pixels_01Nov-30Apr_{format(start_date, '%Y')}-{format(previous_cumulative_end_date, '%Y')}.csv")
+)
+
+if (file_exists(previous_cumulative_file)) {
+  cat(glue("Loading existing cumulative file: {previous_cumulative_file}\n"))
+  all_previous <- read.csv(previous_cumulative_file)
+  bind <- rbind.data.frame(all_previous, eider16p)
+} else {
+  cat(glue("No existing cumulative file found at: {previous_cumulative_file}\n"))
+  cat("Treating this run's output as the starting point for a new cumulative file.\n")
+  bind <- eider16p
+}
 
 # check and remove duplicate records
 #any(duplicated(bind))
@@ -166,19 +233,24 @@ bind <- rbind.data.frame(all_previous, eider16p)
 #bind <- df_unique
 
 # save it
-write.csv(bind, paste("output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-", year, ".csv", sep=""), row.names = FALSE)
+cumulative_file <- file.path(
+  output_dir, "nsidc_sic_summary_v4",
+  glue("sic_bootstrapv4_16pixels_01Nov-30Apr_{format(start_date, '%Y')}-{format(end_date, '%Y')}.csv")
+)
+safe_write_csv(bind, cumulative_file)
 ```
 
 ## Outputs
 
 Running this script produces the following:
 
-- **`eider16p`**: an in-session data frame with one row per pixel per successfully processed day, including `lon`, `lat`, projected `x`/`y` coordinates (EPSG:3411), `bs_sic_prop` (sea ice concentration, percent), and `sicDate` (date parsed from the source filename).
-- **`error_log`**: a list of any GeoTIFFs within the winter processing window that failed to load or extract, each with the associated error message, so failures can be investigated without re-running the entire batch.
-- **A single-winter CSV**, `output/sic_beringSea_16pixels/[year]_sic_bootstrapv4_16pixels_01Nov-30Apr.csv`.
-- **`all_previous`**: the previously saved cumulative multi-year record, read back in for the append step.
-- **`bind`**: the combined data frame (`all_previous` + `eider16p`), optionally de-duplicated if the commented-out duplicate-check lines are enabled.
-- **An updated cumulative CSV**: `output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-[year].csv`, replacing the prior cumulative file with one extended through the newly processed winter.
+- **`eider16p`**: an in-session data frame with one row per pixel per successfully processed day within `start_date` to `end_date`, including `lon`, `lat`, projected `x`/`y` coordinates (EPSG:3411), `bs_sic_prop` (sea ice concentration, percent), and `sicDate` (date parsed from the source filename).
+- **`error_log`**: a list of any GeoTIFFs within the requested date range that failed to load or extract, each with the associated error message, so failures can be investigated without re-running the entire batch.
+- **A single-period CSV**, named from `start_date`/`end_date`: `output/sic_beringSea_16pixels/sic_bootstrapv4_16pixels_[start_date]_[end_date].csv`.
+- **`all_previous`** (if a previous cumulative file exists at the expected path): the previously saved cumulative record, read back in for the append step.
+- **`bind`**: either the combined data frame (`all_previous` + `eider16p`), or just `eider16p` alone if no previous cumulative file was found. Optionally de-duplicated if the commented-out duplicate-check lines are enabled.
+- **An updated cumulative CSV**, named from `start_date`/`end_date`: `output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_[start_year]-[end_year].csv`.
+- **Overwrite protection**: both CSV writes above go through `safe_write_csv()`. If a file already exists at the target path, the default (`overwrite_existing <- FALSE`) stops the script with an error rather than overwriting it; setting `overwrite_existing <- TRUE` instead renames the existing file aside with a timestamped `.bak_[timestamp]` suffix before writing the new one, so no prior output is ever lost.
 
 ## References
 Christie, K. S., Hollmen, T. E., Flint, P., & Douglas, D. (2018). Non-linear effect of sea ice: Spectacled Eider survival declines at both extremes of the ice spectrum. Ecology and Evolution, 8(23), 11808–11818.
@@ -198,3 +270,7 @@ https://doi.org/10.1093/ornithology/ukaf008
 
 Petersen, M. R., & Douglas, D. C. (2004). Winter ecology of Spectacled Eiders: environmental characteristics and population change. The Condor, 106(1), 79–94.
 https://doi.org/10.2307/1370518
+
+```{r session-info, echo=FALSE, comment=""}
+sessionInfo()
+```

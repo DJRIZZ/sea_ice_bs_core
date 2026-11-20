@@ -9,12 +9,15 @@ editor_options:
 
 ```{r setup, include=FALSE}
 # 03_summarize_daily_min_bs3_sic.Rmd
-
+# sessionInfo()
+# R version 4.6.1 (2026-06-24 ucrt)
+# Platform: x86_64-w64-mingw32/x64
+# Running under: Windows 11 x64 (build 26200)
 knitr::opts_chunk$set(echo = TRUE)
 # got packages
-library(ggplot2) # plot data
-library(imager) # load and display jpgs 
-library(glue) # build file paths/names from the year-range parameters defined below
+library(ggplot2) # plot data (ggplot2_4.0.3)
+library(imager) # load and display jpgs (imager_1.0.8)
+library(glue) # build file paths/names from the year-range parameters defined below (glue_1.8.1)
 ```
 ## Summary data 
 This script creates annual summaries of sea ice cover in an area of the Bering Sea relevant to Spectacled Eiders for the winters 1992–2024 output as the tabular data set “sea_ice_vars_1992_2024.csv“ which includes the “ice_days” (column name “ws_count_sic_ge95”) variable used in several published papers (Petersen and Douglas 2004, Flint et al. 2016, Christie et al. 2018, Dunham et al. 2021, Friendly et al. 2025).
@@ -47,12 +50,19 @@ This is the fourth script in a four-script workflow. The raw data summarized her
 
 ```{r define_params}
 # Define analysis parameters ####
-first_year <- 1992 # first winter year (Nov of this year through Apr of the following year) included in the time series
-last_year <- 2024 # last COMPLETE winter year currently available - update this once each additional winter's data is complete (i.e. once data through the following April has been downloaded and processed)
+start_date <- as.Date("1992-11-01") # earliest date to extract (inclusive)
+end_date   <- as.Date("2025-04-30") # latest date to extract (inclusive)
+
+first_year <- as.numeric(format(start_date, "%Y")) # first winter year (Nov of this year through Apr of the following year) included in the time series
+last_year_month <- as.numeric(format(end_date, "%m"))
+last_year <- if (last_year_month > 10) as.numeric(format(end_date, "%Y")) else as.numeric(format(end_date, "%Y")) - 1 # last COMPLETE winter year currently available - derived from end_date; update end_date (not this line) once each additional winter's data is complete (i.e. once data through the following April has been downloaded and processed)
 ```
 
 ```{r load_data}
-all.ice <- read.csv("output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv", header=T)
+all.ice <- read.csv(
+  glue("output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_{format(start_date, '%Y')}-{format(end_date, '%Y')}.csv"),
+  header = TRUE
+)
 str(all.ice)
 ```
 
@@ -374,3 +384,7 @@ https://espis.boem.gov/final%20reports/5426.pdf
 
 USFWS. (2021). Species Status Assessment for the Spectacled Eider, 1–150.
 https://ecos.fws.gov/ServCat/DownloadFile/209520
+
+```{r session-info, echo=FALSE, comment=""}
+sessionInfo()
+```

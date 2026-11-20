@@ -1,3 +1,6 @@
+# NB CODE NO LONGER WORKS AS OF LATE 2025
+# See README_updated_sea_ice_nsidc_download_20260407.txt for current GUI for retrieving data (worked in April 2026)
+
 # 00_download_seaice_data_from_nsidc_20250902.R
 # script to login to the National Snow and Ice Data Center and download daily sea ice concentration data
 

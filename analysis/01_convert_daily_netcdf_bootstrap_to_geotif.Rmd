@@ -13,7 +13,7 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE)
 # script to convert National Snow and Ice Data Center sea ice NetCDF files (*.nc) to geotifs (previously NSDIC provided data as binary files)
 library(ncdf4) # works with Network Common Data Form (NetCDF, file extension *.nc) files
-library(terra) # current version of deprecated geos package
+library(terra) # current functionality of deprecated geos package
 library(progress) # progress bar package for monitoring for loop through files
 library(fs) # file paths in RMD run through workflowr are a challenge...
 library(glue)
@@ -31,23 +31,30 @@ This is the second script in a four-script workflow. The raw data are downloaded
 
 ### Inputs
 
-- **Input directory**: a directory of daily netCDF files downloaded by the companion download script, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.nc`.
-- **Output directory**: the destination folder for converted GeoTIFF files, created automatically if it does not already exist.
+- **Input directory**: a directory of daily netCDF files downloaded by the companion download script, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.nc`. The directory path is derived from `start_date`/`end_date` below and must match the date range actually downloaded by `00_download_seaice_data_from_nsidc.Rmd`.
+- **Output directory**: the destination folder for converted GeoTIFF files, likewise versioned by `start_date`/`end_date`, so the GeoTIFF output directory name always indicates which netCDF date range it was converted from. Created automatically if it does not already exist.
 - **Coordinate reference system**: EPSG:3411 (NSIDC Sea Ice Polar Stereographic North), assigned only if a file's raster does not already have a CRS defined.
 - **Flag values**: raw sea ice concentration values above 1000 (per NSIDC metadata, flag values of 1100 and 1200 indicate land and missing data, respectively) are set to `NA`.
+- **`overwrite_existing` parameter**: if `FALSE` (default), any GeoTIFF that already exists at the target output path is skipped rather than reconverted - useful for incrementally converting only newly downloaded netCDF files. Set to `TRUE` to force reconversion of every input file, overwriting any existing GeoTIFF of the same name.
 
 ```{r define_paths, warning = FALSE, echo = FALSE, results='hide'}
 # Define analysis parameters ####
 # must match the start_date/end_date used in 00_download_seaice_data_from_nsidc.Rmd
 # to download the netCDF files being converted here
-start_date <- as.Date("1992-11-01")
-end_date   <- as.Date("1992-11-05")
+start_date <- as.Date("1992-11-30")
+end_date   <- as.Date("2025-04-30")
+
+# If FALSE (default), skip any GeoTIFF that already exists at the target output
+# path rather than reconverting it. Set TRUE to recovert everything.
+overwrite_existing <- FALSE
 
 # Define input and output directories (run as RStudio project) ####
 # input_dir_root built the same way as save_dir in 00_download_seaice_data_from_nsidc.Rmd,
 # so this path always matches whatever date range was actually downloaded
 input_dir_root  <- glue("data/sourced_data/nsidc_sic_v4/sic_raw_netcdf/sic_netcdf_{format(start_date, '%Y%m%d')}_{format(end_date, '%Y%m%d')}")
-output_dir_root <- "data/sourced_data/nsidc_sic_v4/sic_geotif"
+# output_dir_root versioned the same way, so the GeoTIFF directory name always
+# reflects which netCDF date range it was converted from
+output_dir_root <- glue("data/sourced_data/nsidc_sic_v4/sic_geotif/sic_geotif_{format(start_date, '%Y%m%d')}_{format(end_date, '%Y%m%d')}")
 
 input_dir  <- path_abs(input_dir_root)
 output_dir <- path_abs(output_dir_root)
@@ -64,42 +71,51 @@ The input directory is specified as *`r input_dir_root`* and the output director
 
 ### Conversion loop
 
-All netCDF files in the input directory (filtered to `nc_files` above) are processed in a loop: each is loaded as a raster with `terra::rast()`, assigned a coordinate reference system if missing, has flagged values set to `NA`, and is written out as a GeoTIFF with the same base filename.
+All netCDF files in the input directory (filtered to `nc_files` above) are processed in a loop: each is loaded as a raster with `terra::rast()`, assigned a coordinate reference system if missing, has flagged values set to `NA`, and is written out as a GeoTIFF with the same base filename. If a GeoTIFF of that name already exists in the output directory and `overwrite_existing` is `FALSE`, the file is skipped instead of being reconverted.
 
 ```{r convert_loop, warning = FALSE}
 # create progress bar
 pb <- progress_bar$new(
   format = "  Converting [:bar] :percent | :current/:total | :filename", # pb layout
   total = length(nc_files), # total files
-  clear = FALSE, # keep bar visible until loop finishes
+  clear = FALSE, # keep bar visible until loop finishes (currently doesn't work, may not be possible with a rendered markdown doc)
   width = 60 # displayed bar width
 )
 
 error_log <- list() # collect any files that fail to convert, with the associated error message
+n_skipped <- 0 # count of files skipped because a GeoTIFF already existed
 
 for (f in nc_files) { # loop through each daily NetCDF file
 
   pb$tick(tokens = list(filename = basename(f))) # progress bar by 1 step each file
 
+  base_name <- tools::file_path_sans_ext(basename(f)) # extract base name without extension
+  out_file <- file.path(output_dir, paste0(base_name, ".tif")) # build output file name reusing base name with .tif extension
+
+  if (file_exists(out_file) && !overwrite_existing) {
+    n_skipped <- n_skipped + 1
+    next
+  }
+
   tryCatch({
-    base_name <- tools::file_path_sans_ext(basename(f)) # extract base name without extension
-    out_file <- file.path(output_dir, paste0(base_name, ".tif")) # build output file name reusing base name with .tif extension
     r <- rast(f)  # load as raster, NB "varname" option not needed
     if (is.na(crs(r))) crs(r) <- "EPSG:3411"  # assign CRS (if not already defined in file)
     r[r > 1000] <- NA  # assign NA to values flagged with NA values (1100, 1200; as per metadata)
-    writeRaster(r, out_file, overwrite = TRUE) # write to GeoTIFF, file format set by file name extension *.tif
+    writeRaster(r, out_file, overwrite = overwrite_existing) # write to GeoTIFF, file format set by file name extension *.tif
   }, error = function(e) {
     error_log[[length(error_log) + 1]] <<- list(file = basename(f), message = conditionMessage(e))
   })
 }
 
+cat(glue("\n{n_skipped} file(s) skipped (GeoTIFF already existed; overwrite_existing = {overwrite_existing}).\n"))
+
 if (length(error_log) > 0) {
-  cat(glue::glue("\n{length(error_log)} of {length(nc_files)} file(s) failed to convert:\n"))
+  cat(glue("{length(error_log)} of {length(nc_files)} file(s) failed to convert:\n"))
   for (err in error_log) {
-    cat(glue::glue("  {err$file}: {err$message}\n"))
+    cat(glue("  {err$file}: {err$message}\n"))
   }
 } else {
-  cat(glue::glue("\nAll {length(nc_files)} file(s) converted successfully.\n"))
+  cat(glue("All {length(nc_files) - n_skipped} attempted file(s) converted successfully.\n"))
 }
 ```
 
@@ -107,8 +123,9 @@ if (length(error_log) > 0) {
 
 Running this script produces the following:
 
-- **A directory of GeoTIFF files** at `r output_dir`, one per successfully converted netCDF input, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif` - matching the naming convention expected by the extraction script that follows this one in the pipeline.
+- **A directory of GeoTIFF files** at `r output_dir`, one per successfully converted netCDF input, named `NSIDC0079_SEAICE_PS_N25km_[YYYYMMDD]_v4.0.tif` - matching the naming convention expected by the extraction script that follows this one in the pipeline. This directory name is versioned by `start_date`/`end_date`, matching the input netCDF directory it was converted from.
 - **`error_log`**: a list of any input files that failed to convert, each with the associated error message, so failures can be investigated without needing to re-run the entire batch.
+- **`n_skipped`**: a count of input files that already had a corresponding GeoTIFF in the output directory and were left untouched (when `overwrite_existing` is `FALSE`).
 
 ## Reference
 Comiso, J. C. (2023). Bootstrap Sea Ice Concentrations from Nimbus-7 SMMR and DMSP SSM/I-SSMIS. (NSIDC-0079, Version 4). [Data Set]. Boulder, Colorado USA. NASA National Snow and Ice Data Center Distributed Active Archive Center. https://doi.org/10.5067/X5LG68MH013O. [time series of interest: 01 Nov 1992 to 31 Dec 2024]. Date Accessed 2025-09-02.

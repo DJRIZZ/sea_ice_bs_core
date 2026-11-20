@@ -1,6 +1,6 @@
 # 02_extract_specEider_winterice_bootstrap_sic_geotif.R 
 
-# Adapted from code posted by A. Fischbach then modified by G. Durner in 2020, and updated by D. Rizzolo in 2025
+# Adapted from code posted by A. Fischbach then modified by G. Durner in 2020, and updated by D. Rizzolo in 2021
 
 # This R code extracts sea ice concentration (sic) data from the 16 pixels (each 25 km x 25 km) in the northern Bering Sea identified 
 # in Petersen and Douglas 2005 as spectacled eider winter range (based on satellite transmitter locations from the 1990s, but used as an area
@@ -9,7 +9,7 @@
 # Output contains daily values of sic (percent cover, 0 to 100) for each of the 16 pixels for each winter (01 Nov to 30 April) day.
 # Script requires coordinates of the 16 spec eider pixels in file: specEider_winter_pixel_samples_xy_geo_SAVE.csv
 # Input is a directory of daily geotifs
-# Output file is ""sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv"
+# Output file is ""sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2025.csv"
 
 # Data are SMMR and SSM/I Passive Microwave SIC from the Bootstrap Algorithm, version 4.0 (released May 2024)
 # Data URL: https://n5eil01u.ecs.nsidc.org/PM/NSIDC-0079.004/
@@ -92,7 +92,7 @@ str(eider16p)
 summary(eider16p$bs_sic_prop)
 
 # save reprocessed time series
-write.csv(eider16p, "output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_1992-2024.csv", row.names = FALSE)                   
+write.csv(eider16p, "output/sic_beringSea_16pixels/nsidc_sic_summary_v4/sic_bootstrapv4_16pixels_01Nov-30Apr_2024-2025.csv", row.names = FALSE)                   
 
 # *OR*
 
